@@ -1,0 +1,2625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tracker de Cedentes — BMA Capital</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f5f6fa;
+  --bg2:#ffffff;
+  --bg3:#f0f1f5;
+  --border:#e2e4ed;
+  --border2:#d0d3e0;
+  --text:#1a1d2e;
+  --muted:#6b7090;
+  --accent:#2563eb;
+  --accent2:#6c63ff;
+  --yellow:#b45309;
+  --red:#dc2626;
+  --green:#15803d;
+  --green2:#dcfce7;
+  --yellow2:#fef9c3;
+  --red2:#fee2e2;
+  --radius:10px;
+  --radius-sm:6px;
+  --font:'Sora',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* LAYOUT */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column}
+.logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+.logo-mark{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.logo h1{font-size:16px;font-weight:600;letter-spacing:-.02em}
+.logo span{color:var(--muted);font-weight:300}
+.nav{padding:16px 12px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;color:var(--muted);font-size:12.5px;font-weight:400;border:none;background:none;width:100%;text-align:left;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:#2563eb;background:#dbeafe;font-weight:500}
+.nav-item svg{flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nav-section{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:14px 12px 6px;font-family:var(--mono)}
+.badge-count{margin-left:auto;background:#2563eb;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;font-family:var(--mono)}
+.badge-warn{background:#f5c84222;color:var(--yellow);border:1px solid #f5c84240}
+.badge-alert{background:#f05c5c22;color:var(--red);border:1px solid #f05c5c40}
+
+.main{display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.page-title{font-size:15px;font-weight:500;letter-spacing:-.01em}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+
+.content{padding:24px;overflow-y:auto;flex:1}
+.page{display:none}
+.page.active{display:block}
+
+/* CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.stat-label{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.stat-num{font-size:18px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.stat-card.warn .stat-num{color:#b45309}
+.stat-card.danger .stat-num{color:#dc2626}
+.stat-card.ok .stat-num{color:#15803d}
+
+/* FORMS */
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.form-card-title{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.03em}
+input[type=text],input[type=url],select,textarea{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  color:var(--text);font-family:var(--font);font-size:13px;padding:8px 11px;width:100%;
+  transition:border .15s;outline:none
+}
+input[type=text]:focus,select:focus,textarea:focus,input[type=url]:focus{border-color:#4f8ef750}
+select option{background:var(--bg3)}
+textarea{resize:vertical;min-height:80px}
+.hint{font-size:11px;color:var(--muted);margin-top:3px;font-style:italic}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-family:var(--font);font-size:12.5px;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-primary:hover{background:#3a7de8}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--border);color:var(--text);background:var(--bg3)}
+.btn-danger{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626}
+.btn-danger:hover{background:#fecaca}
+.btn-slack{background:#fdf2f8;border:1px solid #e879f9;color:#a21caf}
+.btn-slack:hover{background:#fae8ff}
+.btn-yellow{background:#fef9c3;border:1px solid #fde047;color:#a16207}
+.btn-yellow:hover{background:#fef08a}
+.btn-green{background:#dcfce7;border:1px solid #86efac;color:#15803d}
+.btn-green:hover{background:#bbf7d0}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ALERTS */
+.alert{padding:10px 14px;border-radius:var(--radius-sm);font-size:12.5px;margin:10px 0;display:none}
+.alert.show{display:block}
+.alert.ok{background:#dcfce7;border:1px solid #86efac;color:#15803d}
+.alert.err{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626}
+.alert.warn{background:#fef9c3;border:1px solid #fde047;color:#a16207}
+
+/* FILE DROP */
+.file-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.file-drop{border:1px dashed var(--border2);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:all .2s}
+.file-drop:hover{border-color:var(--accent);background:#4f8ef708}
+.file-drop.loaded{border-color:#15803d;background:#dcfce7}
+.file-drop-icon{font-size:22px;margin-bottom:6px;opacity:.5}
+.file-drop.loaded .file-drop-icon{opacity:1}
+.file-drop-label{font-size:12px;color:var(--muted)}
+.file-drop.loaded .file-drop-label{color:#15803d}
+.file-drop-name{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;overflow-y:auto;max-height:65vh;border-radius:var(--radius);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px}
+.date-input{font-family:var(--mono);font-size:10.5px;border:1px solid transparent;background:transparent;color:inherit;width:78px;cursor:text;padding:2px 4px;outline:none;border-radius:4px;text-align:center;letter-spacing:.01em}
+.date-input:hover{border-color:var(--border2);background:var(--bg3)}
+.date-input:focus{border-color:var(--accent);background:var(--bg2);outline:none}
+.date-input::placeholder{color:var(--border2);font-size:11px;letter-spacing:0}
+td.date-td{padding:5px 7px;white-space:nowrap}
+.sticky-col{position:sticky;z-index:2;background:var(--bg2)}
+thead .sticky-col{background:#1e3a5f;z-index:5}
+tbody tr:hover .sticky-col{background:var(--bg3)}
+.sc-grupo   {left:0;min-width:120px;max-width:120px}
+.sc-tipo    {left:120px;min-width:90px;max-width:90px}
+.sc-cedente {left:210px;min-width:160px;max-width:160px}
+.sc-analista{left:370px;min-width:120px;max-width:120px;border-right:2px solid var(--border)}
+thead .sc-analista{border-right:2px solid var(--border2)}
+thead th{position:sticky;top:0;z-index:4;background:#1e3a5f;padding:9px 11px;text-align:left;font-size:10.5px;font-weight:500;color:#e2eaf6;font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid #2d5282;white-space:nowrap;box-shadow:0 1px 0 #2d5282;cursor:pointer;user-select:none}
+tbody tr{border-bottom:1px solid var(--border)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover td{background:#ffffff04}
+td{padding:8px 11px;vertical-align:middle}
+
+/* STATUS CELLS */
+.date-badge{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:4px;font-weight:500;white-space:nowrap}
+.date-badge.first{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd}
+.date-badge.other{background:#f0f1f5;color:var(--muted);border:1px solid var(--border)}
+.date-badge.empty-warn{background:#fef9c3;color:#a16207;border:1px solid #fde047}
+.date-badge.empty-alert{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5}
+
+.cls-cell{font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cls-cell.filled{color:var(--text)}
+
+.pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;font-family:var(--mono)}
+.pill-novo{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+.pill-ret{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd}
+.pill-ra{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+.pill-rb{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd}
+.pill-rc{background:#fef9c3;color:#a16207;border:1px solid #fde047}
+.pill-rd{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5}
+
+/* STATUS INDICATOR */
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;flex-shrink:0}
+.status-dot.ok{background:var(--green)}
+.status-dot.warn{background:var(--yellow)}
+.status-dot.alert{background:var(--red)}
+
+/* REPORT */
+.report-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden}
+.report-header{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.report-header:hover{background:var(--bg3)}
+.report-analyst{font-size:14px;font-weight:500}
+.report-meta{display:flex;gap:10px;align-items:center}
+.report-body{padding:14px 18px}
+.report-table{width:100%;border-collapse:collapse;font-size:12px}
+.report-table th{background:#1e3a5f;color:#e2eaf6;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;border-bottom:1px solid #2d5282;text-align:left}
+.report-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.report-table tr:last-child td{border-bottom:none}
+.delay-warn{color:var(--yellow)}
+.delay-alert{color:var(--red);font-weight:500}
+
+/* SLACK CONFIG */
+.slack-preview{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-family:var(--mono);font-size:12px;color:var(--muted);white-space:pre-wrap;line-height:1.7;margin-top:12px;max-height:200px;overflow-y:auto}
+.slack-preview .bold{color:var(--text);font-weight:500}
+.slack-preview .yellow{color:var(--yellow)}
+.slack-preview .red{color:var(--red)}
+
+/* PAGINATION */
+.pager{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:12px;color:var(--muted)}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.toolbar input,.toolbar select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:12.5px;padding:7px 11px;outline:none}
+.toolbar input:focus,.toolbar select:focus{border-color:#4f8ef750}
+.toolbar input{width:200px}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state p{font-size:13px;margin-top:8px}
+
+/* COLLAPSE */
+.collapsible{display:none}
+.collapsible.open{display:block}
+.chevron{transition:transform .2s;display:inline-block}
+.chevron.open{transform:rotate(180deg)}
+
+/* SORT INDICATORS */
+thead th span[id^="sort-"]{color:#93c5fd;font-size:10px}
+thead th:hover{background:#2d5282}
+
+/* EDIT MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
+.modal-close:hover{background:var(--bg3);color:var(--text)}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+
+/* FILTER TOGGLE BUTTONS */
+.filt-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--muted);font-family:var(--font);font-size:12px;cursor:pointer;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.filt-btn:hover{border-color:var(--border);color:var(--text)}
+.filt-btn.filt-active{background:var(--text);color:var(--bg2);border-color:var(--text)}
+.filt-btn.filt-warn.filt-active{background:#fef9c3;color:#a16207;border-color:#fde047}
+.filt-btn.filt-alert.filt-active{background:#fee2e2;color:#dc2626;border-color:#fca5a5}
+.filt-btn.filt-ok.filt-active{background:#dcfce7;color:#15803d;border-color:#86efac}
+.filt-cnt{font-size:11px;background:rgba(0,0,0,.08);padding:1px 6px;border-radius:8px;font-family:var(--mono)}
+
+/* SEPARATOR */
+.sep{border:none;border-top:1px solid var(--border);margin:20px 0}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">BMA Capital</div>
+    <h1>Cedentes <span>Tracker</span></h1>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Principal</div>
+    <button class="nav-item active" onclick="goPage('p-dash',this)">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="goPage('p-add',this)">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Cadastrar cedente
+    </button>
+    <button class="nav-item" onclick="goPage('p-list',this)" id="nav-list">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      Lista de cedentes
+      <span class="badge-count" id="badge-nav">0</span>
+    </button>
+    <div class="nav-section">Monitoramento</div>
+    <button class="nav-item" onclick="goPage('p-alerts',this)" id="nav-alerts">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Alertas de prazo
+      <span class="badge-count badge-alert" id="badge-alerts">0</span>
+    </button>
+    <button class="nav-item" onclick="goPage('p-report',this)">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Relatório por analista
+    </button>
+    <div class="nav-section">Configuração</div>
+    <button class="nav-item" onclick="goPage('p-import',this)">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Importar dados
+    </button>
+    <button class="nav-item" onclick="goPage('p-analistas',this)">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Analistas
+    </button>
+    <button class="nav-item" onclick="goPage('p-slack',this)">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+      Cobrança via Slack
+    </button>
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="page-title" id="page-title-text">Dashboard</span>
+      <span id="sync-status" style="font-size:11px;font-family:var(--mono)">⏳ Conectando...</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Exportar CSV
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="exportBackup()" title="Salva todos os dados em JSON para não perder ao trocar de versão">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+        Backup
+      </button>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer" title="Restaura dados de um backup JSON">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1,4 1,10 7,10"/><path d="M3.51,15a9,9,0,1,0,.49-3.47"/></svg>
+        Restaurar
+        <input type="file" accept=".json" style="display:none" onchange="importBackup(this)"/>
+      </label>
+      <button class="btn btn-danger btn-sm" onclick="clearAll()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/><path d="M10,11v6M14,11v6"/></svg>
+        Limpar tudo
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="p-dash" class="page active">
+      <div class="stats-row">
+        <div class="stat-card ok"><div class="stat-label">Total cadastrados</div><div class="stat-num" id="st-total">0</div><div class="stat-sub">cedentes ativos</div></div>
+        <div class="stat-card"><div class="stat-label">Novos</div><div class="stat-num" id="st-novos">0</div><div class="stat-sub">primeiro acesso</div></div>
+        <div class="stat-card warn"><div class="stat-label">Atenção (≤3 dias)</div><div class="stat-num" id="st-warn">0</div><div class="stat-sub">aguardando classificação</div></div>
+        <div class="stat-card danger"><div class="stat-label">Atrasados (&gt;3 dias)</div><div class="stat-num" id="st-alert">0</div><div class="stat-sub">classificação pendente</div></div>
+      </div>
+      <div class="form-card" style="min-height:180px" id="dash-empty">
+        <div class="empty-state">
+          <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="opacity:.3"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg>
+          <p>Cadastre cedentes e importe dados para ver o dashboard.</p>
+        </div>
+      </div>
+      <div id="dash-content" style="display:none">
+        <!-- Semestres -->
+        <div id="dash-semestres" style="margin-bottom:20px"></div>
+        <!-- Por analista -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em">Por analista</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" id="sem-filter-btns"></div>
+        </div>
+        <div id="dash-analistas" style="margin-bottom:20px"></div>
+        <div id="dash-sugestao" style="margin-bottom:20px"></div>
+        <!-- Últimos -->
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Últimos cadastrados</div>
+        <div class="tbl-wrap"><table><thead><tr><th>Cedente</th><th>Tipo</th><th>Analista</th><th>Rating</th><th>1ª Op</th><th>Status</th></tr></thead><tbody id="dash-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- CADASTRAR -->
+    <div id="p-add" class="page">
+      <div class="form-card">
+        <div class="form-card-title">Novo cedente</div>
+        <div class="form-grid">
+          <div class="fg"><label>Nome do cedente *</label><input type="text" id="i-nome" placeholder="Ex: ZINPAO"/></div>
+          <div class="fg"><label>Analista *</label><input type="text" id="i-analista" placeholder="Ex: Luan" list="analistas-datalist" autocomplete="off"/><datalist id="analistas-datalist"></datalist></div>
+        </div>
+        <div class="form-grid">
+          <div class="fg">
+            <label>Tipo *</label>
+            <select id="i-tipo"><option value="NOVO">Novo</option><option value="RETORNO">Retorno</option></select>
+          </div>
+          <div class="fg">
+            <label>Grupo cedente</label>
+            <input type="text" id="i-grupo" placeholder="Auto após importar dados"/>
+            <span class="hint">Preenchido automaticamente ao importar o arquivo de dados</span>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="fg">
+            <label>1ª data de operação *</label>
+            <input type="date" id="i-data1" style="color-scheme:light"/>
+            <span class="hint">As datas seguintes virão do arquivo de dados automaticamente</span>
+          </div>
+          <div class="fg">
+            <label style="visibility:hidden">placeholder</label>
+            <p style="font-size:12px;color:var(--muted);line-height:1.6;padding-top:4px">
+              A 2ª, 3ª e 4ª operação serão preenchidas ao importar o arquivo de dados, com as datas posteriores à 1ª cadastrada.
+            </p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="addCedente(false)">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Cadastrar
+          </button>
+          <button class="btn btn-slack btn-sm" onclick="addCedente(true)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5zm6 0H19V8.5c0-.83.67-1.5 1.5-1.5S22 7.67 22 8.5 21.33 10 20.5 10zm-11 4c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5zm-6 0H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14zm11.5-4.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5zm1.5 4.5H15v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5zM8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+            Cadastrar + Disparar no Slack
+          </button>
+        </div>
+        <div id="msg-add" class="alert" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- LISTA -->
+    <div id="p-list" class="page">
+      <div class="toolbar">
+        <input type="text" id="s-nome" placeholder="Buscar cedente..." oninput="renderList()"/>
+        <select id="s-tipo" onchange="renderList()"><option value="">Todos os tipos</option><option value="NOVO">Novos</option><option value="RETORNO">Retornos</option></select>
+        <select id="s-analista" onchange="renderList()"><option value="">Todos analistas</option></select>
+        <select id="s-status" onchange="renderList()"><option value="">Todos os status</option><option value="ok">Ok</option><option value="warn">Atenção</option><option value="alert">Atrasado</option></select>
+      </div>
+      <div class="toolbar" style="margin-top:-6px;margin-bottom:10px;align-items:center;gap:8px">
+        <span style="font-size:12px;color:var(--muted)">Período (1ª op):</span>
+        <input type="date" id="s-de" onchange="renderList()" style="color-scheme:light;font-size:12px;padding:6px 10px;width:auto" title="De"/>
+        <span style="font-size:12px;color:var(--muted)">até</span>
+        <input type="date" id="s-ate" onchange="renderList()" style="color-scheme:light;font-size:12px;padding:6px 10px;width:auto" title="Até"/>
+        <select id="s-semestre" onchange="renderList()" style="font-size:12px;padding:6px 10px;width:auto">
+          <option value="">Todos os semestres</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="clearPeriodFilter()" style="font-size:11px;padding:5px 10px">✕ Limpar</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr id="list-thead-row">
+            <th class="sticky-col sc-grupo" onclick="sortList('grupo')" style="cursor:pointer">Grupo <span id="sort-grupo"></span></th>
+            <th class="sticky-col sc-tipo" onclick="sortList('tipo')" style="cursor:pointer">Tipo <span id="sort-tipo"></span></th>
+            <th class="sticky-col sc-cedente" onclick="sortList('nome')" style="cursor:pointer">Cedente <span id="sort-nome"></span></th>
+            <th class="sticky-col sc-analista" onclick="sortList('analista')" style="cursor:pointer">Analista <span id="sort-analista"></span></th>
+            <th onclick="sortList('rating')" style="cursor:pointer">Rating <span id="sort-rating"></span></th>
+            <th onclick="sortList('data1')" style="cursor:pointer">1ª Operação <span id="sort-data1"></span></th>
+            <th>2ª Operação</th><th>3ª Operação</th><th>4ª Operação</th>
+            <th>Classif. 1</th><th>Classif. 2</th><th>Classif. 3</th><th>Classif. 4</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="list-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <button class="btn btn-ghost btn-sm" onclick="changePg(-1)" id="pg-prev">← Anterior</button>
+        <span id="pg-info" style="font-family:var(--mono);font-size:11px">—</span>
+        <button class="btn btn-ghost btn-sm" onclick="changePg(1)" id="pg-next">Próxima →</button>
+      </div>
+    </div>
+
+    <!-- ALERTAS -->
+    <div id="p-alerts" class="page">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <p style="font-size:13px;color:var(--muted);line-height:1.6;max-width:520px">
+          Cedentes com operações sem classificação registrada.
+        </p>
+        <!-- FILTER TOGGLE BUTTONS -->
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button id="filt-all"  class="filt-btn filt-active" onclick="setAlertFilter('')">
+            Todos <span id="cnt-all"  class="filt-cnt"></span>
+          </button>
+          <button id="filt-warn" class="filt-btn filt-warn"   onclick="setAlertFilter('warn')">
+            🟡 Atenção <span id="cnt-warn" class="filt-cnt"></span>
+          </button>
+          <button id="filt-alert" class="filt-btn filt-alert" onclick="setAlertFilter('alert')">
+            🔴 Atrasado <span id="cnt-alert" class="filt-cnt"></span>
+          </button>
+          <button id="filt-ok"   class="filt-btn filt-ok"    onclick="setAlertFilter('ok')">
+            ✅ Em dia <span id="cnt-ok" class="filt-cnt"></span>
+          </button>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-bottom:16px">
+        <select id="a-analista" onchange="renderAlerts()"><option value="">Todos analistas</option></select>
+        <input type="hidden" id="a-status" value=""/>
+      </div>
+      <div id="alerts-content"></div>
+    </div>
+
+    <!-- RELATÓRIO -->
+    <div id="p-report" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <button id="rf-all"   class="filt-btn filt-active" onclick="setReportFilter('')">Todos <span id="rf-cnt-all"   class="filt-cnt"></span></button>
+          <button id="rf-alert" class="filt-btn filt-alert"  onclick="setReportFilter('alert')">🔴 Atrasados <span id="rf-cnt-alert" class="filt-cnt"></span></button>
+          <button id="rf-warn"  class="filt-btn filt-warn"   onclick="setReportFilter('warn')">🟡 Atenção <span id="rf-cnt-warn"  class="filt-cnt"></span></button>
+          <input type="hidden" id="report-filter-status" value=""/>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="printReport()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6,9 6,2 18,2 18,9"/><path d="M6,18H4a2,2,0,0,1-2-2v-5a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimir
+          </button>
+          <button class="btn btn-slack btn-sm" id="btn-send-all" onclick="sendAllSlack()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5zm6 0H19V8.5c0-.83.67-1.5 1.5-1.5S22 7.67 22 8.5 21.33 10 20.5 10zm-11 4c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5zm-6 0H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14zm11.5-4.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5zm1.5 4.5H15v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5zM8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+            Enviar todos via Slack
+          </button>
+        </div>
+      </div>
+      <div id="report-content"></div>
+    </div>
+
+    <!-- IMPORTAR -->
+    <div id="p-import" class="page">
+
+      <!-- IMPORTAR BASE -->
+      <div class="form-card" style="border-color:#4f8ef730">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="form-card-title" style="margin-bottom:0">Importar base de cedentes</div>
+          <button class="btn btn-ghost btn-sm" onclick="downloadTemplate()">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Baixar template
+          </button>
+        </div>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.6">Suba sua planilha com a base existente. Precisa ter as colunas: <strong style="color:var(--text)">Grupo, Tipo, Cedente, Analista</strong>. Duplicatas são ignoradas automaticamente.</p>
+        <label class="file-drop" id="drop-base" for="f-base" style="margin-bottom:12px;display:block">
+          <div class="file-drop-icon">📂</div>
+          <div class="file-drop-label" id="lbl-base">Clique para selecionar a base (xlsx)</div>
+        </label>
+        <input type="file" id="f-base" accept=".xlsx" style="display:none" onchange="handleBaseFile(this)"/>
+        <div id="base-preview"></div>
+        <div id="msg-base" class="alert"></div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0 20px"/>
+
+      <!-- ATUALIZAR DADOS -->
+      <div class="form-card">
+        <div class="form-card-title">Atualizar dados dos cedentes</div>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.6">Importe os dois arquivos exportados pelo sistema. Grupo, Rating, datas de operação e classificações serão preenchidos automaticamente para todos os cedentes já cadastrados.</p>
+        <div class="file-grid">
+          <div>
+            <p style="font-size:12px;font-weight:500;margin-bottom:8px">Exportação Checagem <span style="color:var(--muted);font-weight:400">(data__58_.xlsx)</span></p>
+            <label class="file-drop" id="drop-data" for="f-data">
+              <div class="file-drop-icon">📊</div>
+              <div class="file-drop-label" id="lbl-data">Clique para selecionar</div>
+              <div class="file-drop-name" id="fname-data"></div>
+            </label>
+            <input type="file" id="f-data" accept=".xlsx" style="display:none" onchange="handleFile(this,'data')"/>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:500;margin-bottom:8px">Verificação Pré Faturamento</p>
+            <label class="file-drop" id="drop-chk" for="f-chk">
+              <div class="file-drop-icon">📋</div>
+              <div class="file-drop-label" id="lbl-chk">Clique para selecionar</div>
+              <div class="file-drop-name" id="fname-chk"></div>
+            </label>
+            <input type="file" id="f-chk" accept=".xlsx" style="display:none" onchange="handleFile(this,'chk')"/>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" id="btn-apply" onclick="applyMaps()" disabled>
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1,4 1,10 7,10"/><path d="M3.51,15a9,9,0,1,0,.49-3.47"/></svg>
+            Atualizar todos os cedentes
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="showDiag()" id="btn-diag">
+            🔍 Diagnóstico
+          </button>
+        </div>
+        <div id="msg-import" class="alert"></div>
+        <div id="diag-panel" style="display:none;margin-top:14px"></div>
+      </div>
+    </div>
+
+    <!-- SLACK CONFIG -->
+    <div id="p-slack" class="page">
+      <div class="form-card">
+        <div class="form-card-title">Configuração do Webhook</div>
+        <div class="fg" style="margin-bottom:14px">
+          <label>URL do Webhook do Slack *</label>
+          <input type="url" id="slack-url" placeholder="https://hooks.slack.com/services/..." oninput="saveSlackConfig()"/>
+          <span class="hint">Configure em: api.slack.com → Incoming Webhooks → Add to Slack</span>
+        </div>
+        <div class="form-grid">
+          <div class="fg">
+            <label>Prefixo da mensagem</label>
+            <input type="text" id="slack-prefix" value="🔔 *Cobrança de classificação pendente*" oninput="saveSlackConfig();updatePreview()"/>
+          </div>
+          <div class="fg">
+            <label>Mencionar canal/usuário</label>
+            <input type="text" id="slack-mention" placeholder="@analista ou #canal" oninput="saveSlackConfig();updatePreview()"/>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:14px">
+          <label>Rodapé da mensagem</label>
+          <textarea id="slack-footer" rows="2" placeholder="Ex: Por favor, atualize a classificação o mais breve possível." oninput="saveSlackConfig();updatePreview()"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="btn btn-green btn-sm" onclick="testSlack()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22,2 11,13"/><polygon points="22,2 15,22 11,13 2,9 22,2"/></svg>
+            Testar conexão
+          </button>
+        </div>
+        <div id="msg-slack" class="alert"></div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Prévia da mensagem</div>
+        <div class="slack-preview" id="slack-preview">Configure os campos acima para ver a prévia.</div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Canais por analista</div>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.6">Configure o webhook URL individual de cada analista. Cada um recebe as mensagens no seu próprio canal privado.</p>
+        <div id="analista-channels-list" style="margin-bottom:14px"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
+          <input type="text" id="new-channel-name" placeholder="Nome do analista" style="width:160px"/>
+          <input type="text" id="new-channel-value" placeholder="https://hooks.slack.com/services/..." style="width:340px;font-size:11px"/>
+          <button class="btn btn-ghost btn-sm" onclick="addAnalystChannel()">+ Adicionar</button>
+        </div>
+        <div id="msg-channels" class="alert"></div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Envio manual por analista</div>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.6">Selecione o analista, filtre o que quer cobrar e envie.</p>
+
+        <div style="margin-bottom:14px">
+          <p style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Filtrar pendências</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button id="sf-all"   class="filt-btn filt-active" onclick="setSlackFilter('')">Todos <span id="sf-cnt-all" class="filt-cnt"></span></button>
+            <button id="sf-alert" class="filt-btn filt-alert"  onclick="setSlackFilter('alert')">🔴 Atrasados <span id="sf-cnt-alert" class="filt-cnt"></span></button>
+            <button id="sf-warn"  class="filt-btn filt-warn"   onclick="setSlackFilter('warn')">🟡 Atenção <span id="sf-cnt-warn" class="filt-cnt"></span></button>
+          </div>
+          <input type="hidden" id="slack-filter-status" value=""/>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="slack-analista" onchange="updateSlackCounts();updatePreview();" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:13px;padding:8px 11px;outline:none;min-width:200px">
+            <option value="">Selecionar analista...</option>
+          </select>
+          <button class="btn btn-slack btn-sm" onclick="sendSlackForAnalista()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5zm6 0H19V8.5c0-.83.67-1.5 1.5-1.5S22 7.67 22 8.5 21.33 10 20.5 10zm-11 4c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5zm-6 0H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14zm11.5-4.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5zm1.5 4.5H15v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5zM8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+            Enviar cobrança
+          </button>
+          <span id="slack-pending-info" style="font-size:12px;color:var(--muted)"></span>
+        </div>
+        <div id="msg-slack2" class="alert"></div>
+      </div>
+    </div>
+
+    <!-- ANALISTAS PAGE -->
+    <div id="p-analistas" class="page">
+      <div class="form-card" style="margin-bottom:16px">
+        <div class="form-card-title">Cadastrar analista</div>
+        <div class="form-grid">
+          <div class="fg"><label>Nome *</label><input type="text" id="an-nome" placeholder="Ex: Luan"/></div>
+          <div class="fg"><label>Webhook Slack</label><input type="url" id="an-webhook" placeholder="https://hooks.slack.com/services/..."/></div>
+        </div>
+        <div id="msg-an" class="alert"></div>
+        <button class="btn btn-primary btn-sm" onclick="saveAnalista()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <span id="an-btn-label">Cadastrar analista</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" id="an-cancel-btn" onclick="cancelEditAnalista()" style="display:none;margin-left:6px">Cancelar</button>
+        <input type="hidden" id="an-editing-key" value=""/>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">Analistas cadastrados</div>
+        <div id="analistas-table"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+<!-- DISPARO MODAL -->
+<div class="modal-overlay hidden" id="disparo-modal-overlay" onclick="if(event.target===this)closeDisparoModal()">
+  <div class="modal" style="max-width:560px" onclick="event.stopPropagation()">
+    <div class="modal-title">
+      <span>🚀 Prévia do disparo no Slack</span>
+      <button class="modal-close" onclick="closeDisparoModal()">✕</button>
+    </div>
+    <input type="hidden" id="disparo-analista-ref" value=""/>
+    <div id="disparo-webhook-info" style="font-size:11px;margin-bottom:10px;padding:6px 10px;background:var(--bg3);border-radius:var(--radius-sm)"></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Revise e edite a mensagem antes de enviar:</p>
+    <textarea id="disparo-preview" rows="14" style="font-family:var(--mono);font-size:12px;line-height:1.6;width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:12px;outline:none;resize:vertical"></textarea>
+    <div id="msg-disparo" class="alert"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeDisparoModal()">Cancelar</button>
+      <button class="btn btn-slack btn-sm" onclick="confirmDisparo()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5zm6 0H19V8.5c0-.83.67-1.5 1.5-1.5S22 7.67 22 8.5 21.33 10 20.5 10zm-11 4c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5zm-6 0H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14zm11.5-4.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5zm1.5 4.5H15v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5zM8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+        Enviar no Slack
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay hidden" id="edit-modal-overlay" onclick="closeEditModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">
+      <span>✏️ Editar cedente</span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:16px;font-size:12px;color:var(--muted)">
+      Cedente: <strong id="edit-nome-lbl" style="color:var(--text)"></strong>
+    </div>
+    <div class="modal-grid">
+      <div class="fg">
+        <label>Analista</label>
+        <input type="text" id="edit-analista" placeholder="Nome do analista"/>
+      </div>
+      <div class="fg">
+        <label>Tipo</label>
+        <select id="edit-tipo">
+          <option value="NOVO">Novo</option>
+          <option value="RETORNO">Retorno</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-grid">
+      <div class="fg">
+        <label>1ª data de operação</label>
+        <input type="date" id="edit-data1" style="color-scheme:light"/>
+      </div>
+      <div class="fg">
+        <label>Grupo cedente</label>
+        <input type="text" id="edit-grupo" placeholder="Grupo"/>
+      </div>
+    </div>
+    <div id="msg-edit" class="alert"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeEditModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEdit()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>
+        Salvar alterações
+      </button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /shell -->
+
+<script>
+// ====== STATE ======
+let records = [];
+let dataMap = {};
+let chkMap = {};
+let page = 1;
+const PG = 25;
+let sortCol = ''; let sortDir = 1; // 1=asc, -1=desc
+let dataReady = false, chkReady = false;
+
+let slackConfig = {
+  url: '',
+  prefix: '🔔 *Cobrança de classificação pendente*',
+  mention: '',
+  footer: ''
+};
+
+// ====== STORAGE (Firestore + localStorage fallback) ======
+const LS = {
+  save(k,v){
+    try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){}
+    // Also save to Firestore if available
+    if(window._fbSet) window._fbSet(k, v);
+  },
+  load(k,def){
+    try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; }
+  }
+};
+
+async function initStorage(){
+  showSyncIndicator('loading');
+
+  // Load from Firestore if available, else fallback to localStorage
+  const load = async (key, def) => {
+    if(window._fbGet){
+      const v = await window._fbGet(key, null);
+      if(v !== null){
+        // Sync to localStorage for offline use
+        try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){}
+        return v;
+      }
+    }
+    return LS.load(key, def);
+  };
+
+  records     = await load('bma-records', []);
+  dataMap     = await load('bma-datamap', {});
+  chkMap      = await load('bma-chkmap', {});
+  slackConfig = await load('bma-slack', slackConfig);
+
+  // Sanitize dataMap
+  Object.keys(dataMap).forEach(k=>{
+    if(!Array.isArray(dataMap[k].datas)) dataMap[k].datas=[];
+  });
+
+  dataReady = Object.keys(dataMap).length>0;
+  chkReady  = Object.keys(chkMap).length>0;
+
+  if(slackConfig.url) document.getElementById('slack-url').value=slackConfig.url;
+  document.getElementById('slack-prefix').value=slackConfig.prefix||'🔔 *Cobrança de classificação pendente*';
+  document.getElementById('slack-mention').value=slackConfig.mention||'';
+  document.getElementById('slack-footer').value=slackConfig.footer||'';
+
+  if(dataReady){ document.getElementById('drop-data').classList.add('loaded'); document.getElementById('lbl-data').textContent='Dados carregados'; }
+  if(chkReady){  document.getElementById('drop-chk').classList.add('loaded');  document.getElementById('lbl-chk').textContent='Dados carregados'; }
+  checkApplyBtn();
+  updateAll();
+  loadAnalystChannels();
+  showSyncIndicator('ready');
+
+  // Real-time listener: refresh when another device changes records
+  if(window._fbOnSnapshot && window._fbDoc && window._fbDb){
+    window._fbOnSnapshot(window._fbDoc(window._fbDb, window._fbCOLL, 'bma-records'), snap=>{
+      if(snap.exists()){
+        const fresh = snap.data().value;
+        if(JSON.stringify(fresh) !== JSON.stringify(records)){
+          records = fresh;
+          try{ localStorage.setItem('bma-records', JSON.stringify(records)); }catch(e){}
+          updateAll();
+          renderList();
+          showSyncIndicator('synced');
+        }
+      }
+    });
+  }
+}
+
+function showSyncIndicator(status){
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  const map = {
+    loading: ['⏳ Conectando...', '#a16207'],
+    ready:   ['☁ Conectado',     '#15803d'],
+    saving:  ['⏳ Salvando...',   '#a16207'],
+    saved:   ['✓ Salvo',         '#15803d'],
+    synced:  ['🔄 Sincronizado', '#2563eb'],
+    error:   ['⚠ Erro',          '#dc2626'],
+  };
+  const [txt, col] = map[status] || ['', ''];
+  el.textContent = txt;
+  el.style.color = col;
+  if(status==='saved'||status==='synced') setTimeout(()=>{ el.textContent='☁ Conectado'; el.style.color='#15803d'; }, 2500);
+}
+
+// ====== UTILS ======
+function norm(s){ return (s||'').toString().trim().toUpperCase(); }
+
+function parseUTCDate(d){
+  // Always parse as UTC to avoid timezone shifting dates back 1 day in UTC-3
+  if(!d) return null;
+  if(typeof d==='string'){
+    const m=d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return new Date(Date.UTC(+m[1],+m[2]-1,+m[3]));
+  }
+  const dt=new Date(d);
+  return isNaN(dt)?null:dt;
+}
+
+function fmtDate(d){
+  if(!d) return '';
+  const dt=parseUTCDate(d);
+  if(!dt) return '';
+  const day=String(dt.getUTCDate()).padStart(2,'0');
+  const mon=String(dt.getUTCMonth()+1).padStart(2,'0');
+  const yr=String(dt.getUTCFullYear());
+  return `${day}/${mon}/${yr}`;
+}
+
+function daysDiff(dateStr){
+  if(!dateStr) return null;
+  const dt=parseUTCDate(dateStr);
+  if(!dt) return null;
+  const today=new Date(); today.setHours(0,0,0,0);
+  return Math.floor((today-dt)/(1000*60*60*24));
+}
+
+function businessDays(dateStr){
+  if(!dateStr) return null;
+  const start=parseUTCDate(dateStr);
+  if(!start) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  // Start counting from the day AFTER the operation date
+  let count=0, cur=new Date(start);
+  cur.setDate(cur.getDate()+1); // skip the operation day itself
+  while(cur<=today){
+    const dow=cur.getDay();
+    if(dow!==0&&dow!==6) count++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return count;
+}
+
+function ratingPill(r){
+  if(!r) return '<span style="color:var(--muted)">—</span>';
+  const u=r.toUpperCase();
+  let cls='pill-rd';
+  if(u.match(/\bA\b|\bA\+/)) cls='pill-ra';
+  else if(u.includes('B+')) cls='pill-rb';
+  else if(u.includes('B-')||u.includes('C')) cls='pill-rc';
+  else if(u.includes('B')) cls='pill-rb';
+  const short=r.replace(/^\d+[-–]\s*/,'').replace('RATING ','').trim();
+  return `<span class="pill ${cls}">${short}</span>`;
+}
+
+// Compute status for a record: returns {idx, status, days} for each date without classification
+function getRecordPendencies(rec){
+  const result=[];
+  const datas=rec.datas||[];
+  const cls=rec.classificacoes||[];
+  for(let i=0;i<datas.length&&i<4;i++){
+    // Consider as pending if: empty OR is a "PEND. Checagem" type observation
+    if(!cls[i]||cls[i].trim()===''||isPendente(cls[i])){
+      const bd=businessDays(datas[i]);
+      if(bd===null) continue;
+      const status=bd<=3?'warn':'alert';
+      result.push({opIdx:i+1,date:datas[i],bd,status});
+    }
+  }
+  return result;
+}
+
+function getOverallStatus(rec){
+  const pend=getRecordPendencies(rec);
+  if(pend.length===0) return 'ok';
+  if(pend.some(p=>p.status==='alert')) return 'alert';
+  return 'warn';
+}
+
+// ====== NAVIGATION ======
+const PAGE_TITLES = {
+  'p-dash':'Dashboard','p-add':'Cadastrar cedente','p-list':'Lista de cedentes',
+  'p-alerts':'Alertas de prazo','p-report':'Relatório por analista',
+  'p-import':'Importar dados','p-slack':'Cobrança via Slack','p-analistas':'Analistas'
+};
+
+function goPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  document.getElementById('page-title-text').textContent=PAGE_TITLES[id]||id;
+  if(id==='p-list') renderList();
+  if(id==='p-alerts') renderAlerts();
+  if(id==='p-report') renderReport();
+  if(id==='p-slack'){ updateSlackAnalistas(); updatePreview(); }
+  if(id==='p-analistas') renderAnalistasPage();
+}
+
+// ====== CADASTRAR ======
+// ====== CANAIS POR ANALISTA ======
+let analystChannels = {}; // { "LUAN": { nome, webhook } }
+
+// ====== ANALISTAS CRUD ======
+let analistasList = []; // [{key, nome, webhook}]
+
+function loadAnalistasList(){
+  analistasList = LS.load('bma-analistas', []);
+  analystChannels = {};
+  analistasList.forEach(a=>{ analystChannels[a.nome.toUpperCase()] = a.webhook||''; });
+  // Populate datalist for Analista field in cadastro form
+  const dl = document.getElementById('analistas-datalist');
+  if(dl) dl.innerHTML = analistasList.map(a=>`<option value="${a.nome}">`).join('');
+}
+
+function saveAnalistasList(){
+  LS.save('bma-analistas', analistasList);
+  // Keep analystChannels in sync
+  analystChannels = {};
+  analistasList.forEach(a=>{ analystChannels[a.nome.toUpperCase()] = a.webhook||''; });
+  LS.save('bma-analyst-channels', analystChannels);
+  updateSlackAnalistas();
+  renderAnalystChannels();
+  // Update datalist for cedente cadastro form
+  const dl = document.getElementById('analistas-datalist');
+  if(dl) dl.innerHTML = analistasList.map(a=>`<option value="${a.nome}">`).join('');
+}
+
+function saveAnalista(){
+  const nome = document.getElementById('an-nome').value.trim();
+  const webhook = document.getElementById('an-webhook').value.trim();
+  const editingKey = document.getElementById('an-editing-key').value;
+  const msgEl = document.getElementById('msg-an');
+
+  if(!nome){ showMsg(msgEl,'err','Nome é obrigatório.'); return; }
+
+  if(editingKey){
+    // Edit existing
+    const idx = analistasList.findIndex(a=>a.key===editingKey);
+    if(idx>=0){ analistasList[idx].nome=nome; analistasList[idx].webhook=webhook; }
+  } else {
+    // Check duplicate
+    if(analistasList.find(a=>a.nome.toUpperCase()===nome.toUpperCase())){
+      showMsg(msgEl,'err','Analista já cadastrado.'); return;
+    }
+    analistasList.push({key: Date.now().toString(), nome, webhook});
+  }
+
+  saveAnalistasList();
+  renderAnalistasPage();
+  cancelEditAnalista();
+  showMsg(msgEl,'ok', editingKey?'Analista atualizado!':'Analista cadastrado!');
+}
+
+function editAnalista(key){
+  const a = analistasList.find(x=>x.key===key);
+  if(!a) return;
+  document.getElementById('an-nome').value = a.nome;
+  document.getElementById('an-webhook').value = a.webhook||'';
+  document.getElementById('an-editing-key').value = key;
+  document.getElementById('an-btn-label').textContent = 'Salvar alterações';
+  document.getElementById('an-cancel-btn').style.display='';
+  document.getElementById('an-nome').focus();
+}
+
+function cancelEditAnalista(){
+  document.getElementById('an-nome').value='';
+  document.getElementById('an-webhook').value='';
+  document.getElementById('an-editing-key').value='';
+  document.getElementById('an-btn-label').textContent='Cadastrar analista';
+  document.getElementById('an-cancel-btn').style.display='none';
+}
+
+function deleteAnalista(key){
+  const a = analistasList.find(x=>x.key===key);
+  if(!a||!confirm(`Remover analista "${a.nome}"?`)) return;
+  analistasList = analistasList.filter(x=>x.key!==key);
+  saveAnalistasList();
+  renderAnalistasPage();
+}
+
+function renderAnalistasPage(){
+  const el = document.getElementById('analistas-table');
+  if(!el) return;
+  if(!analistasList.length){
+    el.innerHTML='<div class="empty-state"><p>Nenhum analista cadastrado ainda.</p></div>';
+    return;
+  }
+  el.innerHTML=`<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <thead><tr style="background:var(--bg3)">
+        <th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10.5px;border-bottom:1px solid var(--border);font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em">Nome</th>
+        <th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10.5px;border-bottom:1px solid var(--border);font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em">Webhook Slack</th>
+        <th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10.5px;border-bottom:1px solid var(--border);font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em">Cedentes</th>
+        <th style="padding:8px 12px;border-bottom:1px solid var(--border)"></th>
+      </tr></thead>
+      <tbody>${analistasList.map(a=>{
+        const nCedentes = records.filter(r=>r.analista.toUpperCase()===a.nome.toUpperCase()).length;
+        const hasWebhook = !!a.webhook;
+        const short = a.webhook?(a.webhook.length>50?a.webhook.slice(0,50)+'…':a.webhook):'—';
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 12px;font-weight:500">${a.nome}</td>
+          <td style="padding:8px 12px;font-family:var(--mono);font-size:11px;color:${hasWebhook?'#2563eb':'var(--muted)'}" title="${a.webhook||''}">${short}</td>
+          <td style="padding:8px 12px"><span style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2px 8px;font-size:11px;font-family:var(--mono)">${nCedentes}</span></td>
+          <td style="padding:8px 12px;white-space:nowrap;text-align:right">
+            <button class="btn btn-ghost btn-sm" onclick="editAnalista('${a.key}')" style="margin-right:4px">✏️ Editar</button>
+            <button class="btn btn-ghost btn-sm" onclick="deleteAnalista('${a.key}')" style="color:var(--red)">✕</button>
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function loadAnalystChannels(){
+  analystChannels = LS.load('bma-analyst-channels', {});
+  loadAnalistasList();
+  renderAnalystChannels();
+}
+
+function saveAnalystChannels(){
+  LS.save('bma-analyst-channels', analystChannels);
+}
+
+function renderAnalystChannels(){
+  const container = document.getElementById('analista-channels-list');
+  if(!container) return;
+  const keys = Object.keys(analystChannels);
+  if(!keys.length){
+    container.innerHTML='<p style="font-size:12px;color:var(--muted);margin-bottom:8px">Nenhum canal configurado ainda.</p>';
+    return;
+  }
+  container.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px">${keys.map(k=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px">
+      <span style="font-weight:500;min-width:120px;font-size:12px">${k}</span>
+      <span style="color:var(--accent);font-family:var(--mono);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:400px" title="${analystChannels[k]}">${analystChannels[k].length>60?analystChannels[k].slice(0,60)+'…':analystChannels[k]}</span>
+      <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;" onclick="testSlackAnalista('${k}')" title="Enviar mensagem de teste">🧪 Teste</button>
+      <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;color:var(--red)" onclick="removeAnalystChannel('${k}')">✕</button>
+    </div>`).join('')}</div>`;
+}
+
+function addAnalystChannel(){
+  const name = document.getElementById('new-channel-name').value.trim();
+  const val  = document.getElementById('new-channel-value').value.trim();
+  const msgEl = document.getElementById('msg-channels');
+  if(!name||!val){ showMsg(msgEl,'err','Preencha nome e canal.'); return; }
+  analystChannels[name.toUpperCase()] = val;
+  saveAnalystChannels();
+  renderAnalystChannels();
+  document.getElementById('new-channel-name').value='';
+  document.getElementById('new-channel-value').value='';
+  showMsg(msgEl,'ok',`Canal de ${name} salvo.`);
+}
+
+function removeAnalystChannel(key){
+  delete analystChannels[key];
+  saveAnalystChannels();
+  renderAnalystChannels();
+}
+
+function getChannelForAnalista(analista){
+  // Returns the webhook URL for this analista (or null)
+  const up = analista.toUpperCase();
+  if(analystChannels[up]) return analystChannels[up];
+  const key = Object.keys(analystChannels).find(k=>up.includes(k)||k.includes(up));
+  return key ? analystChannels[key] : null;
+}
+
+function getWebhookForAnalista(analista){
+  // Returns analista-specific webhook URL, falls back to global webhook
+  return getChannelForAnalista(analista) || slackConfig.url || null;
+}
+
+// ====== CALCULAR DATA LIMITE (3-4 dias úteis) ======
+function addBusinessDays(dateStr, days){
+  const dt = new Date(dateStr+'T00:00:00');
+  let added = 0;
+  while(added < days){
+    dt.setDate(dt.getDate()+1);
+    const dow = dt.getDay();
+    if(dow!==0&&dow!==6) added++;
+  }
+  return dt.toISOString().slice(0,10);
+}
+
+function fmtDateFull(d){
+  if(!d) return '';
+  const dt = new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function buildNewCedenteMsg(nome, tipo, data1, analista){
+  const limite = addBusinessDays(data1, 3);
+  const isNovo = tipo==='NOVO';
+  const nOps = isNovo ? '*4 primeiras operações*' : '*3 primeiras operações*';
+  const tipoLabel = isNovo ? 'Novo' : 'Retorno';
+  // Get first name of analista for greeting
+  const firstName = (analista||'').split(' ')[0];
+
+  return `Olá, *${firstName}*!
+
+*Cedente ${tipoLabel}:* *${nome}* — 1ª operação: *${fmtDateFull(data1)}*
+No máximo até o dia *${fmtDateFull(limite)}* precisamos do relatório concluído e enviado.
+
+Enviar relatório das ${nOps}, em até no máximo 3 dias de cada uma ser realizada. Caso dentro desse período por algum motivo não seja possível o envio, gentileza nos sinalizar para podermos avaliar.
+
+No checking em *ATUALIZAÇÕES EQUIPE*, tem a informação de como deve ser a introdução de um cedente novo/retorno.
+
+Peço, por favor, que acesse a operação e avalie as emissões, verificando se são recentes ou antigas, para definirmos qual é o perfil de embarque. Além disso, analise também a localidade (origem e destino), para identificarmos o prazo que seria mais provável o resultado, com base nessas informações.`;
+}
+
+// ====== MODAL PRÉVIA DISPARO ======
+function openDisparoModal(nome, tipo, data1, analista){
+  const msg = buildNewCedenteMsg(nome, tipo, data1, analista);
+  document.getElementById('disparo-preview').value = msg;
+  document.getElementById('disparo-analista-ref').value = analista;
+  // Show which webhook will be used
+  const url = getWebhookForAnalista(analista);
+  const info = document.getElementById('disparo-webhook-info');
+  if(url){
+    const short = url.length>55 ? url.slice(0,55)+'…' : url;
+    info.innerHTML = `<span style="color:#15803d">✅ Webhook: <span style="font-family:var(--mono);font-size:10px">${short}</span></span>`;
+  } else {
+    info.innerHTML = `<span style="color:#dc2626">⚠ Nenhum webhook configurado para <strong>${analista}</strong>. Configure em "Cobrança via Slack" → "Canais por analista".</span>`;
+  }
+  document.getElementById('disparo-modal-overlay').classList.remove('hidden');
+}
+
+function closeDisparoModal(){
+  document.getElementById('disparo-modal-overlay').classList.add('hidden');
+}
+
+async function confirmDisparo(){
+  const analista = document.getElementById('disparo-analista-ref').value;
+  const url = getWebhookForAnalista(analista);
+  const msg = document.getElementById('disparo-preview').value;
+  const msgEl = document.getElementById('msg-disparo');
+  if(!url){ showMsg(msgEl,'err','Nenhum webhook configurado. Adicione o webhook do analista em "Cobrança via Slack" → "Canais por analista".'); return; }
+  if(!msg.trim()){ closeDisparoModal(); return; }
+  await postSlack(url, msg, null, msgEl);
+  showMsg(msgEl,'ok','Mensagem enviada com sucesso!');
+  setTimeout(()=>closeDisparoModal(), 1400);
+}
+
+// ====== ADD CEDENTE ======
+async function addCedente(disparar=false){
+  const nome=document.getElementById('i-nome').value.trim();
+  const analista=document.getElementById('i-analista').value.trim();
+  const tipo=document.getElementById('i-tipo').value;
+  const grupoM=document.getElementById('i-grupo').value.trim();
+  const data1=document.getElementById('i-data1').value;
+  const msgEl=document.getElementById('msg-add');
+
+  if(!nome||!analista){ showMsg(msgEl,'err','Preencha nome e analista.'); return; }
+  if(!data1){ showMsg(msgEl,'err','Informe a 1ª data de operação.'); return; }
+  if(records.find(r=>norm(r.nome)===norm(nome))){ showMsg(msgEl,'err','Cedente já cadastrado.'); return; }
+
+  const dk=norm(nome);
+  const dm=dataMap[dk]||{};
+  const cm=chkMap[dk]||{};
+  const datas=buildDatas(data1, dm.datas||[]);
+  const entry={
+    nome, analista, tipo,
+    grupo: grupoM||dm.grupo||'',
+    rating: dm.rating||'',
+    data1,
+    datas,
+    classificacoes: buildClassificacoes(datas, cm.ops||[])
+  };
+  records.push(entry);
+  LS.save('bma-records',records);
+  updateAll();
+  showMsg(msgEl,'ok',`"${nome}" cadastrado com sucesso.`);
+  document.getElementById('i-nome').value='';
+  document.getElementById('i-analista').value='';
+  document.getElementById('i-grupo').value='';
+  document.getElementById('i-data1').value='';
+
+  if(disparar){
+    openDisparoModal(nome, tipo, data1, analista);
+  }
+}
+
+// Build the 4 dates: [data1, ...next 3 from dataMap that are > data1]
+function buildDatas(data1, allDatasFromMap){
+  if(!data1){
+    // No manual date: return first 4 from map
+    return (allDatasFromMap||[]).slice(0,4);
+  }
+  // Take dates from map that are strictly AFTER data1 (exclude data1 itself to avoid duplicates)
+  const nexts=(allDatasFromMap||[]).filter(d=>d>data1).slice(0,3);
+  return [data1,...nexts];
+}
+
+// Observações que NÃO contam como classificação válida
+function isPendente(obs){
+  if(!obs||obs.trim()==='') return true;
+  const up=obs.trim().toUpperCase();
+  return up.includes('PEND.') || up.includes('PEND ') || up.startsWith('PEND') && up.includes('CHECAGEM') || up.includes('AVALIAR');
+}
+
+function buildClassificacoes(datas,ops){
+  return (datas||[]).slice(0,4).map(d=>{
+    const ds=d.slice(0,10);
+    const match=ops.find(o=>(o.data||'').slice(0,10)===ds);
+    if(!match) return '';
+    // If observation is "pendente", treat as empty (no classification yet)
+    return isPendente(match.obs) ? '' : match.obs;
+  });
+}
+
+// ====== FILE IMPORT ======
+function handleFile(input,type){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      // raw:true keeps numeric serials for dates; cellDates:false avoids timezone-shifted Date objects
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true});
+      if(type==='data') parseDataFile(rows,file.name);
+      else parseChkFile(rows,file.name);
+    }catch(err){ showMsg(document.getElementById('msg-import'),'err','Erro ao ler: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Parse date from xlsx serial number or string — always returns "yyyy-mm-dd"
+function rawToISO(raw){
+  if(!raw && raw!==0) return '';
+
+  // Excel serial number (e.g. 46102 = 2026-04-08)
+  // Excel epoch: Jan 0, 1900 = serial 0; but has a leap-year bug so serial 1 = Jan 1 1900
+  if(typeof raw === 'number' && raw > 1000){
+    // Convert Excel serial to JS date using UTC to avoid any timezone offset
+    const msPerDay = 86400000;
+    // Excel serial 1 = 1900-01-01; JS Date epoch = 1970-01-01 = serial 25569
+    const jsTs = (raw - 25569) * msPerDay; // standard Excel→JS epoch offset (accounts for Excel leap year bug)
+    const dt = new Date(jsTs);
+    const y = dt.getUTCFullYear();
+    const mo = String(dt.getUTCMonth()+1).padStart(2,'0');
+    const d = String(dt.getUTCDate()).padStart(2,'0');
+    return `${y}-${mo}-${d}`;
+  }
+
+  // Already an ISO string "yyyy-mm-dd..."
+  if(typeof raw === 'string'){
+    const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(iso) return raw.slice(0,10);
+    // dd/mm/yyyy or dd/mm/yy
+    const br = raw.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/);
+    if(br){
+      const y = br[3].length===2 ? '20'+br[3] : br[3];
+      return `${y}-${br[2]}-${br[1]}`;
+    }
+  }
+
+  // Fallback: try Date constructor (last resort)
+  const dt = new Date(raw);
+  if(!isNaN(dt)){
+    const y = dt.getUTCFullYear();
+    const mo = String(dt.getUTCMonth()+1).padStart(2,'0');
+    const d = String(dt.getUTCDate()).padStart(2,'0');
+    return `${y}-${mo}-${d}`;
+  }
+
+  return '';
+}
+
+function parseDataFile(rows,fname){
+  // Use a temp local set to deduplicate, never stored in dataMap
+  const tempSets={};
+  dataMap={};
+  for(let i=1;i<rows.length;i++){
+    const row=rows[i]; if(!row||!row[3]) continue;
+    const cedente=norm(row[3]);
+    const grupo=(row[2]||'').toString().trim();
+    const rating=(row[12]||'').toString().trim();
+    const analista=(row[0]||'').toString().trim();
+    const ds=rawToISO(row[1]);
+    if(!dataMap[cedente]){ dataMap[cedente]={grupo,rating,analista,datas:[]}; tempSets[cedente]=new Set(); }
+    if(ds&&!tempSets[cedente].has(ds)){ tempSets[cedente].add(ds); dataMap[cedente].datas.push(ds); }
+  }
+  // Sort all date arrays — pure strings "yyyy-mm-dd" sort correctly lexicographically
+  Object.keys(dataMap).forEach(k=>{ dataMap[k].datas.sort(); });
+  dataReady=true;
+  document.getElementById('drop-data').classList.add('loaded');
+  document.getElementById('lbl-data').textContent='Carregado ✓';
+  document.getElementById('fname-data').textContent=fname;
+  LS.save('bma-datamap',dataMap);
+  checkApplyBtn();
+}
+
+function parseChkFile(rows,fname){
+  chkMap={};
+  for(let i=1;i<rows.length;i++){
+    const row=rows[i]; if(!row||!row[0]) continue;
+    const cedente=norm(row[0]);
+    const obs=(row[7]||'').toString().trim();
+    const ds=rawToISO(row[1]);
+    if(!chkMap[cedente]) chkMap[cedente]={ops:[]};
+    if(ds&&!chkMap[cedente].ops.find(o=>o.data===ds)) chkMap[cedente].ops.push({data:ds,obs});
+  }
+  chkReady=true;
+  document.getElementById('drop-chk').classList.add('loaded');
+  document.getElementById('lbl-chk').textContent='Carregado ✓';
+  document.getElementById('fname-chk').textContent=fname;
+  LS.save('bma-chkmap',chkMap);
+  checkApplyBtn();
+}
+
+function checkApplyBtn(){ document.getElementById('btn-apply').disabled=!(dataReady&&chkReady); }
+
+// ====== IMPORTAR BASE XLSX (Grupo / Tipo / Cedente / Analista) ======
+let pendingBaseRows=[];
+
+function handleBaseFile(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:false});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true});
+      previewBase(rows,file.name);
+      document.getElementById('drop-base').classList.add('loaded');
+      document.getElementById('lbl-base').textContent=file.name+' ✓';
+    }catch(err){ showMsg(document.getElementById('msg-base'),'err','Erro ao ler arquivo: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function previewBase(rows,fname){
+  let headerIdx=0;
+  for(let i=0;i<Math.min(5,rows.length);i++){
+    const r=(rows[i]||[]).map(c=>(c||'').toString().toLowerCase());
+    if(r.some(c=>c.includes('cedente')||c.includes('analista'))){ headerIdx=i; break; }
+  }
+  const header=(rows[headerIdx]||[]).map(c=>(c||'').toString().trim().toLowerCase());
+  const colIdx=(names)=>{ for(const n of names){ const i=header.findIndex(h=>h.includes(n)); if(i>=0) return i; } return -1; };
+  const iGrupo=colIdx(['grupo']);
+  const iTipo=colIdx(['tipo']);
+  const iCedente=colIdx(['cedente']);
+  const iAnalista=colIdx(['analista']);
+  // Optional: 1st date column — accept "1ª", "1a", "data", "primeira"
+  const iData1=colIdx(['ª data','1a data','primeira','data op','data1','data 1']);
+
+  if(iCedente<0||iAnalista<0){
+    showMsg(document.getElementById('msg-base'),'err','Colunas "Cedente" e "Analista" não encontradas. Verifique o cabeçalho do arquivo.');
+    return;
+  }
+
+  pendingBaseRows=[];
+  const seen=new Set(records.map(r=>norm(r.nome)));
+  let novos=0, duplicados=0;
+
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const row=rows[i]; if(!row) continue;
+    const cedente=(row[iCedente]||'').toString().trim();
+    const analista=(row[iAnalista]||'').toString().trim();
+    const grupo=iGrupo>=0?(row[iGrupo]||'').toString().trim():'';
+    const tipoRaw=(iTipo>=0?(row[iTipo]||'').toString().trim().toUpperCase():'NOVO');
+    const tipo=tipoRaw.includes('RET')?'RETORNO':'NOVO';
+    const data1=iData1>=0?rawToISO(row[iData1]):'';
+    if(!cedente||!analista) continue;
+    const isDup=seen.has(norm(cedente));
+    pendingBaseRows.push({cedente,analista,grupo,tipo,data1,isDup});
+    if(isDup) duplicados++; else novos++;
+  }
+
+  const container=document.getElementById('base-preview');
+  if(!pendingBaseRows.length){
+    container.innerHTML='<p style="color:var(--muted);font-size:12px;padding:10px 0">Nenhuma linha válida encontrada.</p>';
+    return;
+  }
+
+  const dupHint=duplicados>0?` <span style="color:var(--yellow)">— ${duplicados} já cadastrado(s) serão ignorados</span>`:'';
+  container.innerHTML=`
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px">
+      <strong style="color:var(--green)">${novos} cedente(s) novo(s)</strong>${dupHint} encontrados em <em>${fname}</em>
+    </p>
+    <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3)">
+          <th style="padding:6px 10px;text-align:left;color:var(--muted);font-size:10.5px;border-bottom:1px solid var(--border)">Cedente</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--muted);font-size:10.5px;border-bottom:1px solid var(--border)">Grupo</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--muted);font-size:10.5px;border-bottom:1px solid var(--border)">Tipo</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--muted);font-size:10.5px;border-bottom:1px solid var(--border)">Analista</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--muted);font-size:10.5px;border-bottom:1px solid var(--border)">1ª Data</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--muted);font-size:10.5px;border-bottom:1px solid var(--border)">Status</th>
+        </tr></thead>
+        <tbody>${pendingBaseRows.map(r=>`<tr style="border-bottom:1px solid var(--border);${r.isDup?'opacity:.4':''}">
+          <td style="padding:6px 10px;font-weight:500">${r.cedente}</td>
+          <td style="padding:6px 10px;color:var(--muted)">${r.grupo||'—'}</td>
+          <td style="padding:6px 10px"><span class="pill ${r.tipo==='NOVO'?'pill-novo':'pill-ret'}">${r.tipo}</span></td>
+          <td style="padding:6px 10px">${r.analista}</td>
+          <td style="padding:6px 10px;font-family:var(--mono);font-size:11px;color:var(--accent)">${r.data1?fmtDate(r.data1):'—'}</td>
+          <td style="padding:6px 10px;font-size:11px;color:${r.isDup?'var(--yellow)':'var(--green)'}">${r.isDup?'Já cadastrado':'Novo'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary" onclick="confirmBaseImport()" ${novos===0?'disabled':''}>
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>
+        Confirmar importação (${novos} cedente${novos!==1?'s':''})
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="cancelBaseImport()">Cancelar</button>
+    </div>`;
+}
+
+function cancelBaseImport(){
+  pendingBaseRows=[];
+  document.getElementById('base-preview').innerHTML='';
+  document.getElementById('f-base').value='';
+  document.getElementById('drop-base').classList.remove('loaded');
+  document.getElementById('lbl-base').textContent='Clique para selecionar';
+}
+
+function confirmBaseImport(){
+  const toAdd=pendingBaseRows.filter(r=>!r.isDup);
+  toAdd.forEach(r=>{
+    const dk=norm(r.cedente);
+    const dm=dataMap[dk]||{};
+    const cm=chkMap[dk]||{};
+    const data1=r.data1||'';
+    const datas=buildDatas(data1, dm.datas||[]);
+    records.push({
+      nome:r.cedente, analista:r.analista, tipo:r.tipo,
+      grupo:r.grupo||dm.grupo||'',
+      rating:dm.rating||'',
+      data1,
+      datas,
+      classificacoes:buildClassificacoes(datas, cm.ops||[])
+    });
+  });
+  LS.save('bma-records',records);
+  pendingBaseRows=[];
+  document.getElementById('base-preview').innerHTML='';
+  document.getElementById('f-base').value='';
+  document.getElementById('drop-base').classList.remove('loaded');
+  document.getElementById('lbl-base').textContent='Clique para selecionar';
+  updateAll();
+  showMsg(document.getElementById('msg-base'),'ok',`${toAdd.length} cedente(s) importado(s) com sucesso!`);
+}
+
+function downloadTemplate(){
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['Grupo','Tipo','Cedente','Analista','1ª Data'],
+    ['ZINPAO','NOVO','ZINPAO','Luan','08/01/2026'],
+    ['ZEN TOYS','RETORNO','ZEN TOYS INDUSTRIA E','Guilherme','09/01/2026'],
+  ]);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Cedentes');
+  XLSX.writeFile(wb,'template_base_cedentes.xlsx');
+}
+
+function applyMaps(){
+  let updated=0;
+  records=records.map(r=>{
+    const dk=norm(r.nome);
+    const dm=dataMap[dk]||{};
+    const cm=chkMap[dk]||{};
+    const mapDatas=Array.isArray(dm.datas)?dm.datas:[];
+
+    // Update grupo/rating from file (non-destructive)
+    if(dm.grupo) r.grupo=r.grupo||dm.grupo;
+    if(dm.rating) r.rating=dm.rating||r.rating;
+
+    // Preserve manually entered 1st date
+    const data1=r.data1||(r.datas&&r.datas[0])||'';
+    r.data1=data1;
+    const newDatas=buildDatas(data1,mapDatas);
+
+    // FREEZE: position already has date+classification → keep as-is, don't overwrite
+    const oldDatas=r.datas||[];
+    const oldCls=r.classificacoes||[];
+    const mergedDatas=[];
+    const mergedCls=[];
+    for(let i=0;i<4;i++){
+      const hadDate=(oldDatas[i]||'').trim();
+      const hadCls=(oldCls[i]||'').trim();
+      if(hadDate && hadCls){
+        // Frozen: keep original data and classification unchanged
+        mergedDatas.push(hadDate);
+        mergedCls.push(hadCls);
+      } else {
+        // Open: use new date from map, look up classification
+        const d=hadDate||newDatas[i]||'';
+        mergedDatas.push(d);
+        if(d){
+          const ds=d.slice(0,10);
+          const match=(cm.ops||[]).find(o=>(o.data||'').slice(0,10)===ds);
+          mergedCls.push(match?match.obs:'');
+        } else {
+          mergedCls.push('');
+        }
+      }
+    }
+    // Trim trailing empty slots
+    while(mergedDatas.length&&!mergedDatas[mergedDatas.length-1]) mergedDatas.pop();
+    while(mergedCls.length>mergedDatas.length) mergedCls.pop();
+
+    r.datas=mergedDatas;
+    r.classificacoes=mergedCls;
+    updated++;
+    return r;
+  });
+  LS.save('bma-records',records);
+  updateAll();
+  const missing=records.filter(r=>{
+    const dk=norm(r.nome);
+    return !(dataMap[dk]&&Array.isArray(dataMap[dk].datas)&&dataMap[dk].datas.length);
+  }).map(r=>r.nome);
+  let msg=`${updated} cedente(s) atualizado(s).`;
+  if(missing.length) msg+=` ${missing.length} sem dados no arquivo: ${missing.slice(0,3).join(', ')}${missing.length>3?'...':''}`;
+  showMsg(document.getElementById('msg-import'),updated>0?'ok':'warn',msg);
+}
+
+// ====== LIST ======
+function sortList(col){
+  if(sortCol===col) sortDir*=-1; else { sortCol=col; sortDir=1; }
+  // Update sort indicators
+  ['grupo','tipo','nome','analista','rating','data1'].forEach(k=>{
+    const el=document.getElementById('sort-'+k);
+    if(el) el.textContent=k===sortCol?(sortDir===1?' ↑':' ↓'):'';
+  });
+  page=1;
+  renderList();
+}
+
+function clearPeriodFilter(){
+  document.getElementById('s-de').value='';
+  document.getElementById('s-ate').value='';
+  document.getElementById('s-semestre').value='';
+  renderList();
+}
+
+function updateSemestreSelect(){
+  const sel=document.getElementById('s-semestre');
+  if(!sel) return;
+  const cur=sel.value;
+  const sems=new Set();
+  records.forEach(r=>{ const s=getSemestre((r.datas&&r.datas[0])||r.data1||''); if(s) sems.add(s); });
+  const sorted=[...sems].sort();
+  sel.innerHTML='<option value="">Todos os semestres</option>'+sorted.map(s=>`<option value="${s}"${s===cur?' selected':''}>${s}</option>`).join('');
+}
+
+function getFiltered(){
+  const q=norm(document.getElementById('s-nome').value);
+  const ft=document.getElementById('s-tipo').value;
+  const fa=norm(document.getElementById('s-analista').value);
+  const fs=document.getElementById('s-status').value;
+  const de=document.getElementById('s-de').value;   // yyyy-mm-dd
+  const ate=document.getElementById('s-ate').value;
+  const sem=document.getElementById('s-semestre').value;
+  let result=records.filter(r=>{
+    if(q&&!norm(r.nome).includes(q)) return false;
+    if(ft&&r.tipo!==ft) return false;
+    if(fa&&norm(r.analista)!==fa) return false;
+    if(fs&&getOverallStatus(r)!==fs) return false;
+    const d1=(r.datas&&r.datas[0])||r.data1||'';
+    if(de&&d1&&d1<de) return false;
+    if(ate&&d1&&d1>ate) return false;
+    if(sem&&getSemestre(d1)!==sem) return false;
+    return true;
+  });
+  if(sortCol){
+    result=[...result].sort((a,b)=>{
+      let av='',bv='';
+      if(sortCol==='data1'){ av=(a.datas&&a.datas[0])||''; bv=(b.datas&&b.datas[0])||''; }
+      else { av=(a[sortCol]||'').toString().toUpperCase(); bv=(b[sortCol]||'').toString().toUpperCase(); }
+      if(av<bv) return -1*sortDir;
+      if(av>bv) return 1*sortDir;
+      return 0;
+    });
+  }
+  return result;
+}
+
+function renderList(){
+  const filtered=getFiltered();
+  const total=filtered.length;
+  const totalPgs=Math.max(1,Math.ceil(total/PG));
+  if(page>totalPgs) page=totalPgs;
+  const slice=filtered.slice((page-1)*PG,page*PG);
+
+  // update analista filter
+  const sel=document.getElementById('s-analista');
+  const cur=sel.value;
+  const anas=[...new Set(records.map(r=>r.analista))].sort();
+  sel.innerHTML='<option value="">Todos analistas</option>'+anas.map(a=>`<option value="${norm(a)}"${norm(a)===cur?' selected':''}>${a}</option>`).join('');
+  updateSemestreSelect();
+
+  const tbody=document.getElementById('list-tbody');
+  if(!slice.length){
+    tbody.innerHTML=`<tr><td colspan="14" class="empty-state"><p>Nenhum cedente encontrado.</p></td></tr>`;
+  } else {
+    tbody.innerHTML=slice.map(r=>{
+      const dts=r.datas||[];
+      const cls=r.classificacoes||[];
+      const tipoPill=r.tipo==='NOVO'?`<span class="pill pill-novo">Novo</span>`:`<span class="pill pill-ret">Retorno</span>`;
+
+      function isoToBr(iso){ // "2026-05-14" → "14/05/2026"
+        if(!iso) return '';
+        const p=iso.split('-');
+        if(p.length!==3) return iso;
+        return `${p[2]}/${p[1]}/${p[0]}`;
+      }
+      function brToIso(br){ // "14/05/2026" → "2026-05-14"
+        const p=br.replace(/\D/g,'');
+        if(p.length<8) return '';
+        return `${p.slice(4,8)}-${p.slice(2,4)}-${p.slice(0,2)}`;
+      }
+
+      function dateTd(i){
+        const d=dts[i];
+        // hasCls = has a REAL classification (not pendente)
+        const clsVal=cls[i]||'';
+        const hasCls=clsVal.trim()!==''&&!isPendente(clsVal);
+        const displayVal=isoToBr(d||'');
+
+        // Color logic:
+        // No date       → neutral grey
+        // Has cls        → GREEN (classificado)
+        // No cls + >3d  → RED (atraso)
+        // No cls + ≤3d  → YELLOW (no prazo)
+        let boxStyle='';
+        if(!d){
+          boxStyle='border-color:var(--border);background:var(--bg3);color:var(--muted)';
+        } else if(hasCls){
+          // GREEN — classificado
+          boxStyle='background:#dcfce7;color:#15803d;border-color:#86efac';
+        } else {
+          const bd=businessDays(d);
+          const isAlert=bd!==null&&bd>3;
+          boxStyle=isAlert
+            ?'background:#fee2e2;color:#dc2626;border-color:#fca5a5'   // RED — atraso
+            :'background:#fef9c3;color:#a16207;border-color:#fde047';  // YELLOW — no prazo
+        }
+
+        const clearBtn = hasCls
+          ? `<button onclick="inlineClearDate(${realIdx},${i})" title="Limpar" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:9px;padding:0 2px;line-height:1;vertical-align:middle;opacity:.35" onmouseover="this.style.opacity=1;this.style.color='#dc2626'" onmouseout="this.style.opacity=.35;this.style.color='var(--muted)'">✕</button>`
+          : '';
+        return `<td class="date-td" style="white-space:nowrap">
+          <input type="text" class="date-input" value="${displayVal}" placeholder="dd/mm/aa"
+            style="${boxStyle}"
+            maxlength="10"
+            oninput="maskDate(this)"
+            onblur="commitDate(this,${realIdx},${i})"
+            onkeydown="if(event.key==='Enter'){this.blur()}"
+            title="Digite dd/mm/aaaa"/>
+          ${clearBtn}
+        </td>`;
+      }
+
+      function clsTd(i){
+        const cv=cls[i]||'';
+        if(!cv.trim()) return '<td style="color:var(--muted)">—</td>';
+        if(isPendente(cv)){
+          return `<td><span class="cls-cell" style="color:var(--muted);font-style:italic;font-size:10.5px" title="${cv}">pendente</span></td>`;
+        }
+        return `<td><span class="cls-cell filled" title="${cv}" style="color:#15803d;font-size:11px">${cv}</span></td>`;
+      }
+
+      const realIdx=records.indexOf(r);
+      return `<tr>
+        <td class="sticky-col sc-grupo" style="color:var(--muted)">${r.grupo||'—'}</td>
+        <td class="sticky-col sc-tipo">${tipoPill}</td>
+        <td class="sticky-col sc-cedente" style="font-weight:500">${r.nome}</td>
+        <td class="sticky-col sc-analista" style="font-weight:500">${r.analista}</td>
+        <td>${ratingPill(r.rating)}</td>
+        ${dateTd(0)}${dateTd(1)}${dateTd(2)}${dateTd(3)}
+        ${clsTd(0)}${clsTd(1)}${clsTd(2)}${clsTd(3)}
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal(${realIdx})" title="Editar" style="padding:3px 7px;margin-right:3px">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="delRecord(${realIdx})" title="Remover" style="padding:3px 7px;color:var(--red)">✕</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('pg-info').textContent=`Pág. ${page}/${totalPgs} — ${total} registros`;
+  document.getElementById('pg-prev').disabled=page<=1;
+  document.getElementById('pg-next').disabled=page>=totalPgs;
+}
+
+function changePg(dir){
+  const total=getFiltered().length;
+  page=Math.min(Math.max(1,page+dir),Math.max(1,Math.ceil(total/PG)));
+  renderList();
+}
+
+function delRecord(idx){ if(confirm('Remover este cedente?')){ records.splice(idx,1); LS.save('bma-records',records); updateAll(); renderList(); } }
+
+// ── Date text input helpers ──
+function maskDate(input){
+  let v=input.value.replace(/\D/g,'');
+  if(v.length>2) v=v.slice(0,2)+'/'+v.slice(2);
+  if(v.length>5) v=v.slice(0,5)+'/'+v.slice(5);
+  if(v.length>10) v=v.slice(0,10);
+  input.value=v;
+}
+
+function commitDate(input, idx, pos){
+  const raw=input.value.trim();
+  if(!raw){ return; } // keep empty as-is, don't save blank
+  const p=raw.replace(/\D/g,'');
+  if(p.length<8){
+    // Invalid — restore previous value
+    const r=records[idx];
+    const prev=(r&&r.datas&&r.datas[pos])||'';
+    input.value=prev?`${prev.slice(8,10)}/${prev.slice(5,7)}/${prev.slice(0,4)}`:'';
+    return;
+  }
+  const iso=`${p.slice(4,8)}-${p.slice(2,4)}-${p.slice(0,2)}`;
+  // Validate date
+  const dt=new Date(iso+'T00:00:00');
+  if(isNaN(dt)){
+    const r=records[idx]; const prev=(r&&r.datas&&r.datas[pos])||'';
+    input.value=prev?`${prev.slice(8,10)}/${prev.slice(5,7)}/${prev.slice(0,4)}`:'';
+    return;
+  }
+  inlineUpdateDate(idx, pos, iso);
+}
+
+function inlineClearDate(idx, pos){
+  if(!confirm('Limpar a data e classificação desta posição?')) return;
+  const r=records[idx];
+  if(!r) return;
+  const datas=[...(r.datas||[])];
+  const cls=[...(r.classificacoes||[])];
+  while(datas.length<=pos) datas.push('');
+  while(cls.length<=pos) cls.push('');
+  datas[pos]='';
+  cls[pos]='';
+  if(pos===0) r.data1='';
+  // Trim trailing empty
+  while(datas.length&&!datas[datas.length-1]) datas.pop();
+  while(cls.length>datas.length) cls.pop();
+  r.datas=datas;
+  r.classificacoes=cls;
+  LS.save('bma-records',records);
+  updateAll();
+  renderList();
+}
+
+function inlineUpdateDate(idx, pos, newVal){
+  const r = records[idx];
+  if(!r) return;
+  const datas = [...(r.datas||[])];
+  const cls   = [...(r.classificacoes||[])];
+
+  // Pad arrays if needed
+  while(datas.length<=pos) datas.push('');
+  while(cls.length<=pos)   cls.push('');
+
+  datas[pos] = newVal;
+
+  // If pos===0, also update data1
+  if(pos===0) r.data1 = newVal;
+
+  // Re-derive classification for this position from chkMap
+  if(newVal){
+    const dk = norm(r.nome);
+    const cm = chkMap[dk]||{};
+    const match = (cm.ops||[]).find(o=>(o.data||'').slice(0,10)===newVal.slice(0,10));
+    // Only update cls if not already frozen (has content)
+    if(!cls[pos]) cls[pos] = match ? match.obs : '';
+  } else {
+    cls[pos] = '';
+  }
+
+  // Trim trailing empty
+  while(datas.length && !datas[datas.length-1]) datas.pop();
+  while(cls.length > datas.length) cls.pop();
+
+  r.datas = datas;
+  r.classificacoes = cls;
+  LS.save('bma-records', records);
+  updateAll();
+  renderList();
+}
+
+let editingIdx = -1;
+
+function openEditModal(idx){
+  editingIdx = idx;
+  const r = records[idx];
+  document.getElementById('edit-nome-lbl').textContent = r.nome;
+  document.getElementById('edit-analista').value = r.analista||'';
+  document.getElementById('edit-tipo').value = r.tipo||'NOVO';
+  document.getElementById('edit-grupo').value = r.grupo||'';
+  document.getElementById('edit-data1').value = r.data1||'';
+  document.getElementById('msg-edit').className='alert';
+  document.getElementById('edit-modal-overlay').classList.remove('hidden');
+}
+
+function closeEditModal(e){
+  if(e && e.target !== document.getElementById('edit-modal-overlay')) return;
+  document.getElementById('edit-modal-overlay').classList.add('hidden');
+  editingIdx = -1;
+}
+
+function saveEdit(){
+  if(editingIdx<0) return;
+  const analista = document.getElementById('edit-analista').value.trim();
+  const tipo     = document.getElementById('edit-tipo').value;
+  const grupo    = document.getElementById('edit-grupo').value.trim();
+  const data1    = document.getElementById('edit-data1').value;
+  const msgEl    = document.getElementById('msg-edit');
+
+  if(!analista){ showMsg(msgEl,'err','Analista é obrigatório.'); return; }
+
+  const r = records[editingIdx];
+  r.analista = analista;
+  r.tipo     = tipo;
+  r.grupo    = grupo;
+
+  // If 1st date changed, rebuild dates and re-derive classifications
+  if(data1 && data1 !== r.data1){
+    r.data1 = data1;
+    const dk = norm(r.nome);
+    const dm = dataMap[dk]||{};
+    const cm = chkMap[dk]||{};
+    const mapDatas = Array.isArray(dm.datas)?dm.datas:[];
+    const newDatas = buildDatas(data1, mapDatas);
+    // Keep frozen positions (date+cls both filled), update open ones
+    const oldDatas = r.datas||[];
+    const oldCls   = r.classificacoes||[];
+    const mDatas=[], mCls=[];
+    for(let i=0;i<4;i++){
+      const hadDate=(oldDatas[i]||'').trim();
+      const hadCls =(oldCls[i] ||'').trim();
+      if(i>0 && hadDate && hadCls){ mDatas.push(hadDate); mCls.push(hadCls); }
+      else {
+        const d = i===0 ? data1 : (newDatas[i]||'');
+        mDatas.push(d);
+        if(d){ const match=(cm.ops||[]).find(o=>(o.data||'').slice(0,10)===d.slice(0,10)); mCls.push(match?match.obs:''); }
+        else mCls.push('');
+      }
+    }
+    while(mDatas.length&&!mDatas[mDatas.length-1]) mDatas.pop();
+    while(mCls.length>mDatas.length) mCls.pop();
+    r.datas = mDatas;
+    r.classificacoes = mCls;
+  } else if(data1){
+    r.data1 = data1;
+  }
+
+  LS.save('bma-records', records);
+  updateAll();
+  renderList();
+  document.getElementById('edit-modal-overlay').classList.add('hidden');
+  editingIdx = -1;
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') { document.getElementById('edit-modal-overlay').classList.add('hidden'); editingIdx=-1; } });
+
+// ====== ALERTS ======
+function setAlertFilter(val){
+  document.getElementById('a-status').value=val;
+  // Update active states on buttons
+  ['all','warn','alert','ok'].forEach(k=>{
+    const btn=document.getElementById('filt-'+k);
+    btn.classList.remove('filt-active');
+    const btnVal=k==='all'?'':k;
+    if(val===btnVal) btn.classList.add('filt-active');
+  });
+  renderAlerts();
+}
+
+function renderAlerts(){
+  const fa=norm(document.getElementById('a-analista').value);
+  const fs=document.getElementById('a-status').value;
+
+  // Update analista filter
+  const sel=document.getElementById('a-analista');
+  const cur=sel.value;
+  const anas=[...new Set(records.map(r=>r.analista))].sort();
+  sel.innerHTML='<option value="">Todos analistas</option>'+anas.map(a=>`<option value="${norm(a)}"${norm(a)===cur?' selected':''}>${a}</option>`).join('');
+
+  // Compute counts for badges
+  const allPending=records.filter(r=>getRecordPendencies(r).length>0);
+  const filtByAna=fa?allPending.filter(r=>norm(r.analista)===fa):allPending;
+  const cntAll=filtByAna.length;
+  const cntWarn=filtByAna.filter(r=>getRecordPendencies(r).some(p=>p.status==='warn')&&!getRecordPendencies(r).some(p=>p.status==='alert')).length;
+  const cntAlert=filtByAna.filter(r=>getRecordPendencies(r).some(p=>p.status==='alert')).length;
+  const cntOk=(fa?records.filter(r=>norm(r.analista)===fa):records).filter(r=>getOverallStatus(r)==='ok').length;
+  document.getElementById('cnt-all').textContent=cntAll||'';
+  document.getElementById('cnt-warn').textContent=cntWarn||'';
+  document.getElementById('cnt-alert').textContent=cntAlert||'';
+  document.getElementById('cnt-ok').textContent=cntOk||'';
+
+  const container=document.getElementById('alerts-content');
+
+  // "Em dia" filter: show records with no pendencies
+  if(fs==='ok'){
+    const okRecs=(fa?records.filter(r=>norm(r.analista)===fa):records).filter(r=>getOverallStatus(r)==='ok');
+    if(!okRecs.length){
+      container.innerHTML=`<div class="form-card"><div class="empty-state"><p>Nenhum cedente em dia encontrado.</p></div></div>`;
+      return;
+    }
+    container.innerHTML=`<div class="form-card">
+      <div style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Cedentes em dia (${okRecs.length})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${okRecs.map(r=>`<div style="display:flex;align-items:center;gap:8px;background:var(--green2);border:1px solid #86efac;border-radius:var(--radius-sm);padding:7px 12px">
+          <span style="color:#15803d">✅</span>
+          <span style="font-weight:500;font-size:12px">${r.nome}</span>
+          <span style="color:var(--muted);font-size:11px">/ ${r.analista}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+    return;
+  }
+
+  // Normal filter (all / warn / alert)
+  const pending=records.filter(r=>{
+    const pend=getRecordPendencies(r);
+    if(!pend.length) return false;
+    if(fa&&norm(r.analista)!==fa) return false;
+    if(fs&&!pend.some(p=>p.status===fs)) return false;
+    return true;
+  });
+
+  if(!pending.length){
+    const emptyMsg=fs==='alert'?'Nenhum cedente atrasado! 🎉':fs==='warn'?'Nenhum cedente em atenção.':'Nenhuma pendência encontrada.';
+    container.innerHTML=`<div class="form-card"><div class="empty-state"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="opacity:.3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg><p>${emptyMsg}</p></div></div>`;
+    return;
+  }
+
+  // Sort: alerts first, then warnings
+  const sorted=[...pending].sort((a,b)=>{
+    const aHasAlert=getRecordPendencies(a).some(p=>p.status==='alert');
+    const bHasAlert=getRecordPendencies(b).some(p=>p.status==='alert');
+    if(aHasAlert&&!bHasAlert) return -1;
+    if(!aHasAlert&&bHasAlert) return 1;
+    return 0;
+  });
+
+  container.innerHTML=sorted.map(r=>{
+    const pend=getRecordPendencies(r);
+    const hasAlert=pend.some(p=>p.status==='alert');
+    const borderColor=hasAlert?'#fca5a5':'#fde047';
+    const headerBg=hasAlert?'#fee2e2':'#fef9c3';
+    const rows=pend.map(p=>{
+      const isAlert=p.status==='alert';
+      const color=isAlert?'#dc2626':'#a16207';
+      const icon=isAlert?'🔴':'🟡';
+      return `<tr>
+        <td style="color:${color};font-weight:500">${icon} ${p.opIdx}ª operação</td>
+        <td style="font-family:var(--mono);font-size:11px">${fmtDate(p.date)}</td>
+        <td style="color:${color}">${p.bd} dia(s) útil(eis) sem classificação</td>
+        <td style="color:${color};font-size:11px;font-weight:500">${isAlert?'⚠ Atrasado':'⏳ Atenção'}</td>
+      </tr>`;
+    }).join('');
+    return `<div style="background:var(--bg2);border:1.5px solid ${borderColor};border-radius:var(--radius);margin-bottom:10px;overflow:hidden">
+      <div style="background:${headerBg};padding:11px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:14px;font-weight:600">${r.nome}</span>
+          <span style="color:var(--muted);font-size:12px">/ ${r.analista}</span>
+          ${ratingPill(r.rating)}
+          <span class="pill ${r.tipo==='NOVO'?'pill-novo':'pill-ret'}">${r.tipo}</span>
+        </div>
+        <span style="font-size:11px;font-weight:600;color:${hasAlert?'#dc2626':'#a16207'}">${hasAlert?'⚠ '+pend.length+' operação(ões) atrasada(s)':'⏳ '+pend.length+' operação(ões) em atenção'}</span>
+      </div>
+      <div style="padding:10px 16px">
+        <table class="report-table"><thead><tr><th>Operação</th><th>Data</th><th>Situação</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ====== REPORT ======
+function setReportFilter(val){
+  document.getElementById('report-filter-status').value=val;
+  ['all','alert','warn'].forEach(k=>{
+    const btn=document.getElementById('rf-'+k);
+    if(!btn) return;
+    btn.classList.remove('filt-active');
+    if(val===(k==='all'?'':k)) btn.classList.add('filt-active');
+  });
+  renderReport();
+}
+
+function renderReport(){
+  const fs=(document.getElementById('report-filter-status')||{value:''}).value||'';
+  const container=document.getElementById('report-content');
+
+  // Update counters
+  let cntAll=0,cntAlert=0,cntWarn=0;
+  records.forEach(r=>getRecordPendencies(r).forEach(p=>{cntAll++;if(p.status==='alert')cntAlert++;else cntWarn++;}));
+  const sc=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v||'';};
+  sc('rf-cnt-all',cntAll); sc('rf-cnt-alert',cntAlert); sc('rf-cnt-warn',cntWarn);
+
+  const byAnalista={};
+  records.forEach(r=>{
+    // Filter pendencies by status
+    const pend=getRecordPendencies(r).filter(p=>!fs||p.status===fs);
+    if(!pend.length) return;
+    if(!byAnalista[r.analista]) byAnalista[r.analista]=[];
+    byAnalista[r.analista].push({...r,pendencias:pend});
+  });
+
+  const analistas=Object.keys(byAnalista).sort();
+  if(!analistas.length){
+    const emptyMsg=fs==='alert'?'Nenhum analista com pendências em atraso! 🎉':fs==='warn'?'Nenhum analista com pendências em atenção.':'Nenhuma classificação pendente no momento.';
+    container.innerHTML=`<div class="form-card"><div class="empty-state"><p>${emptyMsg}</p></div></div>`;
+    return;
+  }
+
+  container.innerHTML=analistas.map(analista=>{
+    const items=byAnalista[analista];
+    const totalPend=items.reduce((a,i)=>a+i.pendencias.length,0);
+    const hasAlert=items.some(i=>i.pendencias.some(p=>p.status==='alert'));
+    const id='rep-'+analista.replace(/\s/g,'_');
+
+    const rows=items.map(r=>r.pendencias.map(p=>{
+      const color=p.status==='alert'?'var(--red)':'var(--yellow)';
+      return `<tr>
+        <td style="font-weight:500">${r.nome}</td>
+        <td style="color:var(--muted)">${r.grupo||'—'}</td>
+        <td style="font-family:var(--mono);font-size:11px">${fmtDate(p.date)}</td>
+        <td style="color:var(--muted)">${p.opIdx}ª</td>
+        <td style="color:${color};font-weight:500">${p.bd}d úteis</td>
+        <td style="color:${color}">${p.status==='alert'?'Atrasado':'Atenção'}</td>
+      </tr>`;
+    }).join('')).join('');
+
+    return `<div class="report-section">
+      <div class="report-header" onclick="toggleSection('${id}',this)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="report-analyst">${analista}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${totalPend} pendência(s)</span>
+          ${hasAlert?`<span style="font-size:11px;color:var(--red)">⚠ com atraso</span>`:''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-slack btn-sm" onclick="event.stopPropagation();sendSlackReport(${JSON.stringify(analista).replace(/'/g,'&#39;')})">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5zm6 0H19V8.5c0-.83.67-1.5 1.5-1.5S22 7.67 22 8.5 21.33 10 20.5 10zm-11 4c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5zm-6 0H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14zm11.5-4.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5zm1.5 4.5H15v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5zM8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+            Cobrar via Slack
+          </button>
+          <span class="chevron open" id="chev-${id}">▾</span>
+        </div>
+      </div>
+      <div class="collapsible open" id="${id}">
+        <div class="report-body">
+          <table class="report-table">
+            <thead><tr><th>Cedente</th><th>Grupo</th><th>Data operação</th><th>Nº op</th><th>Dias úteis</th><th>Status</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSection(id,header){
+  const el=document.getElementById(id);
+  const chev=document.getElementById('chev-'+id);
+  const open=el.classList.toggle('open');
+  if(chev) chev.classList.toggle('open',open);
+}
+
+// ====== DASHBOARD ======
+function updateAll(){
+  updateBadges();
+  updateDash();
+  updateSlackAnalistas();
+}
+
+function updateBadges(){
+  const total=records.length;
+  const warn=records.filter(r=>getOverallStatus(r)==='warn').length;
+  const alert=records.filter(r=>getOverallStatus(r)==='alert').length;
+  document.getElementById('st-total').textContent=total;
+  document.getElementById('st-novos').textContent=records.filter(r=>r.tipo==='NOVO').length;
+  document.getElementById('st-warn').textContent=warn;
+  document.getElementById('st-alert').textContent=alert;
+  document.getElementById('badge-nav').textContent=total;
+  document.getElementById('badge-alerts').textContent=warn+alert;
+}
+
+function getSemestre(dateStr){
+  if(!dateStr) return null;
+  const dt=new Date(dateStr+'T00:00:00');
+  if(isNaN(dt)) return null;
+  const y=dt.getFullYear();
+  const s=dt.getMonth()<6?1:2;
+  return `${s}º semestre ${y}`;
+}
+
+let dashSemFiltros = new Set();
+
+function toggleSemFiltro(sem){
+  if(dashSemFiltros.has(sem)) dashSemFiltros.delete(sem);
+  else dashSemFiltros.add(sem);
+  updateDash();
+}
+
+function pct(n,d){ return d?Math.round(n/d*100):0; }
+
+function barHtml(val, color){
+  return `<div style="display:flex;align-items:center;gap:5px">
+    <div style="flex:1;background:var(--bg3);border-radius:3px;height:5px;min-width:50px;max-width:80px">
+      <div style="width:${val}%;background:${color};height:5px;border-radius:3px"></div>
+    </div>
+    <span style="font-size:10px;color:var(--muted)">${val}%</span>
+  </div>`;
+}
+
+function updateDash(){
+  const empty=document.getElementById('dash-empty');
+  const content=document.getElementById('dash-content');
+  if(!records.length){ empty.style.display=''; content.style.display='none'; return; }
+  empty.style.display='none'; content.style.display='';
+
+  // SEMESTRES
+  const bySem={};
+  records.forEach(r=>{
+    const sem=getSemestre((r.datas||[])[0]||r.data1||'')||'Sem data';
+    if(!bySem[sem]) bySem[sem]={total:0,novo:0,retorno:0};
+    bySem[sem].total++;
+    if(r.tipo==='NOVO') bySem[sem].novo++; else bySem[sem].retorno++;
+  });
+  const semKeys=Object.keys(bySem).sort((a,b)=>a.localeCompare(b));
+
+  // Semestre filter buttons
+  const filtBtns=document.getElementById('sem-filter-btns');
+  if(filtBtns){
+    const allActive=dashSemFiltros.size===0;
+    filtBtns.innerHTML=
+      '<span style="font-size:11px;color:var(--muted)">Filtrar:</span>'+
+      `<button class="filt-btn${allActive?' filt-active':''}" style="font-size:11px;padding:4px 10px" onclick="dashSemFiltros.clear();updateDash()">Todos</button>`+
+      semKeys.map(s=>`<button class="filt-btn${dashSemFiltros.has(s)?' filt-active':''}" style="font-size:11px;padding:4px 10px" onclick="toggleSemFiltro('${s}')">${s}</button>`).join('');
+  }
+
+  // Semestre cards (clickable)
+  document.getElementById('dash-semestres').innerHTML=`
+    <div style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Cedentes por semestre</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${semKeys.map(sem=>{
+        const sel=dashSemFiltros.has(sem);
+        const op=dashSemFiltros.size===0||sel?1:.4;
+        return `<div onclick="toggleSemFiltro('${sem}')" style="background:var(--bg2);border:1px solid ${sel?'#2563eb':'var(--border)'};border-radius:var(--radius);padding:12px 16px;min-width:140px;cursor:pointer;opacity:${op};transition:all .15s">
+          <div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:4px">${sem}</div>
+          <div style="font-size:20px;font-weight:600;margin-bottom:5px">${bySem[sem].total}</div>
+          <div style="display:flex;gap:5px">
+            <span class="pill pill-novo" style="font-size:10px">${bySem[sem].novo}N</span>
+            <span class="pill pill-ret" style="font-size:10px">${bySem[sem].retorno}R</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // Filter records by selected semestres
+  const filtRecs=dashSemFiltros.size===0?records:records.filter(r=>{
+    const s=getSemestre((r.datas||[])[0]||r.data1||'');
+    return dashSemFiltros.has(s);
+  });
+  const totalNovos=filtRecs.filter(r=>r.tipo==='NOVO').length;
+
+  // Build per-analista stats
+  const byAna={};
+  filtRecs.forEach(r=>{
+    const a=r.analista||'—';
+    if(!byAna[a]) byAna[a]={total:0,novo:0,retorno:0,alert:0,warn:0,lastDate:''};
+    byAna[a].total++;
+    if(r.tipo==='NOVO') byAna[a].novo++; else byAna[a].retorno++;
+    const st=getOverallStatus(r);
+    if(st==='alert') byAna[a].alert++;
+    else if(st==='warn') byAna[a].warn++;
+    const d=(r.datas&&r.datas[0])||r.data1||'';
+    if(d>byAna[a].lastDate) byAna[a].lastDate=d;
+  });
+  const anaKeys=Object.keys(byAna).sort();
+
+  const th=(t,al='center')=>`<th style="padding:6px 10px;text-align:${al};background:#1e3a5f;color:#e2eaf6;font-size:10px;border-bottom:1px solid #2d5282;font-family:var(--mono);white-space:nowrap">${t}</th>`;
+
+  document.getElementById('dash-analistas').innerHTML=`
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#1e3a5f">
+          ${th('ANALISTA','left')}${th('TOTAL')}${th('NOVOS')}${th('RETORNOS')}
+          ${th('% DO TOTAL NOVOS')}${th('🚨 ATRASO')}${th('% ATRASO')}${th('⚠️ ATENÇÃO')}
+        </tr></thead>
+        <tbody>${anaKeys.map(a=>{
+          const d=byAna[a];
+          const pN=pct(d.novo,totalNovos);
+          const pA=pct(d.alert,d.total);
+          return `<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:6px 10px;font-weight:500">${a}</td>
+            <td style="padding:6px 10px;text-align:center;font-family:var(--mono);font-size:12px">${d.total}</td>
+            <td style="padding:6px 10px;text-align:center"><span class="pill pill-novo">${d.novo}</span></td>
+            <td style="padding:6px 10px;text-align:center"><span class="pill pill-ret">${d.retorno}</span></td>
+            <td style="padding:6px 10px">${barHtml(pN,'#2563eb')}</td>
+            <td style="padding:6px 10px;text-align:center;color:${d.alert?'#dc2626':'var(--muted)'};font-weight:${d.alert?600:400}">${d.alert||'—'}</td>
+            <td style="padding:6px 10px">${d.alert?barHtml(pA,'#dc2626'):'—'}</td>
+            <td style="padding:6px 10px;text-align:center;color:${d.warn?'#a16207':'var(--muted)'};font-weight:${d.warn?600:400}">${d.warn||'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+
+  // SUGESTÃO — analistas com menos novos e mais tempo sem receber
+  const eligible=anaKeys.filter(a=>a&&a!=='—');
+  if(eligible.length>=2){
+    const sorted=[...eligible].sort((a,b)=>{
+      if(byAna[a].novo!==byAna[b].novo) return byAna[a].novo-byAna[b].novo;
+      return byAna[a].lastDate.localeCompare(byAna[b].lastDate);
+    });
+    const sugg=sorted.slice(0,3);
+    document.getElementById('dash-sugestao').innerHTML=`
+      <div style="background:var(--bg2);border:1px solid #93c5fd;border-radius:var(--radius);padding:14px 18px">
+        <div style="font-size:11px;color:#1d4ed8;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">💡 Sugestão — próximo a receber cedente novo</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Com base em quem recebeu menos novos${dashSemFiltros.size?' no período selecionado':''} e há mais tempo sem receber:</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${sugg.map((a,i)=>{
+            const rank=['🥇','🥈','🥉'][i];
+            const d=byAna[a];
+            return `<div style="background:${i===0?'#dbeafe':'var(--bg3)'};border:1px solid ${i===0?'#93c5fd':'var(--border)'};border-radius:var(--radius-sm);padding:10px 14px;min-width:155px">
+              <div style="font-size:16px;margin-bottom:4px">${rank}</div>
+              <div style="font-weight:600;font-size:13px;margin-bottom:3px">${a}</div>
+              <div style="font-size:11px;color:var(--muted)">${d.novo} novo${d.novo!==1?'s':''} recebido${d.novo!==1?'s':''}</div>
+              <div style="font-size:11px;color:var(--muted)">Último: ${d.lastDate?fmtDate(d.lastDate):'—'}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  } else {
+    document.getElementById('dash-sugestao').innerHTML='';
+  }
+
+  // ÚLTIMOS
+  const last=[...filtRecs].slice(-8).reverse();
+  document.getElementById('dash-tbody').innerHTML=last.map(r=>{
+    const st=getOverallStatus(r);
+    const dot=`<span class="status-dot ${st}"></span>`;
+    return `<tr>
+      <td style="font-weight:500">${r.nome}</td>
+      <td><span class="pill ${r.tipo==='NOVO'?'pill-novo':'pill-ret'}">${r.tipo}</span></td>
+      <td>${r.analista}</td>
+      <td>${ratingPill(r.rating)}</td>
+      <td style="font-family:var(--mono);font-size:11px">${fmtDate((r.datas||[])[0])||'—'}</td>
+      <td>${dot}${st==='ok'?'Ok':st==='warn'?'Atenção':'Atrasado'}</td>
+    </tr>`;
+  }).join('');
+}
+// ====== SLACK ======
+function saveSlackConfig(){
+  slackConfig.url=document.getElementById('slack-url').value.trim();
+  slackConfig.prefix=document.getElementById('slack-prefix').value;
+  slackConfig.mention=document.getElementById('slack-mention').value.trim();
+  slackConfig.footer=document.getElementById('slack-footer').value;
+  LS.save('bma-slack',slackConfig);
+}
+
+function buildSlackMessage(analista, filterStatus=''){
+  const items=records.filter(r=>r.analista===analista);
+  const alerts=[], warns=[];
+  items.forEach(r=>{
+    getRecordPendencies(r).forEach(p=>{
+      if(!filterStatus || p.status===filterStatus){
+        const deadline=addBusinessDays(p.date, 3);
+        const entry={cedente:r.nome,grupo:r.grupo,date:p.date,opIdx:p.opIdx,bd:p.bd,status:p.status,deadline};
+        if(p.status==='alert') alerts.push(entry);
+        else warns.push(entry);
+      }
+    });
+  });
+  if(!alerts.length && !warns.length) return null;
+
+  const firstName=(analista||'').split(' ')[0];
+  let msg=`Olá, *${firstName}*! 👋\n\n`;
+
+  // ATRASADOS
+  if(alerts.length && filterStatus!=='warn'){
+    msg+=`:rotating_light: *Em atraso* — ${alerts.length} relatório${alerts.length!==1?'s':''} pendente${alerts.length!==1?'s':''} (já passou dos 3 dias úteis)\n\n`;
+    alerts.forEach(p=>{
+      msg+=`• *${p.cedente}*${p.grupo&&p.grupo!==p.cedente?' ('+p.grupo+')':''}\n`;
+      msg+=`  ${p.opIdx}ª op · *${fmtDate(p.date)}* · ${p.bd}d úteis sem envio · prazo era *${fmtDateFull(p.deadline)}*\n\n`;
+    });
+    msg+=`_Subtotal em atraso: *${alerts.length} relatório${alerts.length!==1?'s':''}*_\n\n`;
+  }
+
+  // EM ATENÇÃO
+  if(warns.length && filterStatus!=='alert'){
+    msg+=`:warning: *No prazo, mas atenção* — ${warns.length} relatório${warns.length!==1?'s':''} com envio ainda hoje\n\n`;
+    warns.forEach(p=>{
+      msg+=`• *${p.cedente}*${p.grupo&&p.grupo!==p.cedente?' ('+p.grupo+')':''}\n`;
+      msg+=`  ${p.opIdx}ª op · *${fmtDate(p.date)}* · prazo até *${fmtDateFull(p.deadline)}*\n\n`;
+    });
+    msg+=`_Subtotal no prazo: *${warns.length} relatório${warns.length!==1?'s':''}*_\n\n`;
+  }
+
+  msg+=`Por gentileza, verifique e trate como prioridade. Qualquer dificuldade, é só sinalizar! 🙏`;
+
+  if(slackConfig.footer) msg+=`\n\n_${slackConfig.footer}_`;
+  return msg;
+}
+
+function setSlackFilter(val){
+  document.getElementById('slack-filter-status').value=val;
+  ['all','alert','warn'].forEach(k=>{
+    const btn=document.getElementById('sf-'+k);
+    if(!btn) return;
+    btn.classList.remove('filt-active');
+    if(val===(k==='all'?'':k)) btn.classList.add('filt-active');
+  });
+  updateSlackCounts();
+  updatePreview();
+}
+
+function updateSlackCounts(){
+  const analista=document.getElementById('slack-analista')?document.getElementById('slack-analista').value:'';
+  const items=analista?records.filter(r=>r.analista===analista):records;
+  let cntAll=0,cntAlert=0,cntWarn=0;
+  items.forEach(r=>getRecordPendencies(r).forEach(p=>{cntAll++;if(p.status==='alert')cntAlert++;else cntWarn++;}));
+  const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v||'';};
+  s('sf-cnt-all',cntAll); s('sf-cnt-alert',cntAlert); s('sf-cnt-warn',cntWarn);
+  const info=document.getElementById('slack-pending-info');
+  if(info){
+    const fs=document.getElementById('slack-filter-status').value;
+    const cnt=fs==='alert'?cntAlert:fs==='warn'?cntWarn:cntAll;
+    info.textContent=analista&&cnt?`${cnt} pendência(s) para enviar`:analista&&!cnt?'Nenhuma pendência com esse filtro':'';
+  }
+}
+
+function updatePreview(){
+  const ana=(document.getElementById('slack-analista').value)||'Analista';
+  const msg=buildSlackMessage(ana)||buildExampleMessage();
+  document.getElementById('slack-preview').textContent=msg||'Configure os campos acima para ver a prévia.';
+}
+
+function buildExampleMessage(){
+  const prefix=document.getElementById('slack-prefix').value||'🔔 *Cobrança de classificação pendente*';
+  const mention=document.getElementById('slack-mention').value||'';
+  const footer=document.getElementById('slack-footer').value||'';
+  let msg=prefix;
+  if(mention) msg+=` ${mention}`;
+  msg+=`\n\n*Analista: Exemplo*\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+  msg+=`🔴 *CEDENTE EXEMPLO* (GRUPO X)\n   └ 2ª operação — 08/05 — 5 dias úteis sem classificação\n`;
+  msg+=`🟡 *OUTRO CEDENTE*\n   └ 1ª operação — 12/05 — 2 dias úteis sem classificação\n`;
+  if(footer) msg+=`\n_${footer}_`;
+  return msg;
+}
+
+function updateSlackAnalistas(){
+  const anas=[...new Set(records.map(r=>r.analista))].sort();
+  const sel=document.getElementById('slack-analista');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Selecionar analista...</option>'+anas.map(a=>`<option value="${a}"${a===cur?' selected':''}>${a}</option>`).join('');
+  if(typeof updateSlackCounts==='function') updateSlackCounts();
+}
+
+async function sendSlackReport(analista){
+  const url=getWebhookForAnalista(analista);
+  if(!url){ alert('Nenhum webhook configurado para '+analista+'. Configure em "Cobrança via Slack" → "Canais por analista".'); return; }
+  const fs=(document.getElementById('report-filter-status')||{value:''}).value||'';
+  const msg=buildSlackMessage(analista,fs);
+  if(!msg){ alert('Nenhuma pendência para '+analista+' com esse filtro'); return; }
+  await postSlack(url,msg,'Cobrança enviada para '+analista+'!',null);
+}
+
+async function sendSlackForAnalista(){
+  const analista=document.getElementById('slack-analista').value;
+  const msgEl=document.getElementById('msg-slack2');
+  if(!analista){ showMsg(msgEl,'err','Selecione um analista.'); return; }
+  const url=getWebhookForAnalista(analista);
+  if(!url){ showMsg(msgEl,'err','Nenhum webhook configurado para '+analista+'. Adicione em "Canais por analista".'); return; }
+  const fs=(document.getElementById('slack-filter-status')||{value:''}).value||'';
+  const msg=buildSlackMessage(analista,fs);
+  if(!msg){ showMsg(msgEl,'warn','Nenhuma pendência com esse filtro.'); return; }
+  await postSlack(url,msg,'Cobrança enviada!',msgEl);
+}
+
+async function sendAllSlack(){
+  const fs=(document.getElementById('report-filter-status')||{value:''}).value||'';
+  const analistas=[...new Set(records.map(r=>r.analista))];
+  let count=0, noWebhook=[];
+  for(const a of analistas){
+    const url=getWebhookForAnalista(a);
+    if(!url){ noWebhook.push(a); continue; }
+    const msg=buildSlackMessage(a,fs);
+    if(msg){ await postSlack(url,msg,null,null); count++; await new Promise(r=>setTimeout(r,300)); }
+  }
+  const filterLabel=fs==='alert'?' (somente atrasados)':fs==='warn'?' (somente em atenção)':'';
+  let txt=count?`${count} mensagem(ns) enviada(s)${filterLabel}!`:'Nenhuma pendência com esse filtro.';
+  if(noWebhook.length) txt+=`
+
+Sem webhook configurado: ${noWebhook.join(', ')}`;
+  alert(txt);
+}
+
+async function testSlack(){
+  const url=slackConfig.url;
+  if(!url){ showMsg(document.getElementById('msg-slack'),'err','Informe a URL do Webhook.'); return; }
+  await postSlack(url,'✅ *Teste de conexão — BMA Tracker*\nWebhook configurado com sucesso!','Conexão testada com sucesso!',document.getElementById('msg-slack'));
+}
+
+async function testSlackAnalista(analista){
+  const url=analystChannels[analista];
+  if(!url){ alert('Webhook não configurado para '+analista); return; }
+  const msg=`🧪 *Teste — BMA Tracker*\n\nOlá, *${analista.charAt(0)+analista.slice(1).toLowerCase()}*! 👋\nEsta é uma mensagem de teste para confirmar que o webhook está configurado corretamente.\n\n_Tudo certo por aqui! ✅_`;
+  const msgEl=document.getElementById('msg-channels');
+  await postSlack(url, msg, `Teste enviado para ${analista}!`, msgEl);
+}
+
+async function postSlack(url,text,successMsg,msgEl){
+  try{
+    // Slack webhooks require no-cors from browser — response will be opaque (status 0) but message is delivered
+    await fetch(url,{
+      method:'POST',
+      mode:'no-cors',
+      body:JSON.stringify({text}),
+      headers:{'Content-Type':'application/json'}
+    });
+    // With no-cors, status is always 0 (opaque response) — treat as success
+    if(msgEl&&successMsg) showMsg(msgEl,'ok',successMsg);
+    else if(successMsg) console.log(successMsg);
+  }catch(e){
+    if(msgEl) showMsg(msgEl,'err','Erro ao enviar. Verifique se o webhook URL está correto.');
+  }
+}
+
+// ====== EXPORT ======
+// ====== BACKUP / RESTORE ======
+function exportBackup(){
+  const backup = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    records,
+    analistasList,
+    analystChannels,
+    dataMap,
+    chkMap,
+    slackConfig
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+  const date = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  a.download = `backup_tracker_${date}.json`;
+  a.click();
+}
+
+function importBackup(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const backup = JSON.parse(e.target.result);
+      if(!backup.records) throw new Error('Arquivo inválido');
+      if(!confirm(`Restaurar backup de ${backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('pt-BR') : 'data desconhecida'}?\n\nIsso substituirá todos os dados atuais.`)) return;
+
+      records        = backup.records        || [];
+      analistasList  = backup.analistasList  || [];
+      analystChannels= backup.analystChannels|| {};
+      dataMap        = backup.dataMap        || {};
+      chkMap         = backup.chkMap         || {};
+      if(backup.slackConfig) slackConfig = backup.slackConfig;
+
+      // Save everything
+      LS.save('bma-records',        records);
+      LS.save('bma-analistas',      analistasList);
+      LS.save('bma-analyst-channels', analystChannels);
+      LS.save('bma-datamap',        dataMap);
+      LS.save('bma-chkmap',         chkMap);
+      LS.save('bma-slack',          slackConfig);
+
+      // Refresh UI
+      const dl = document.getElementById('analistas-datalist');
+      if(dl) dl.innerHTML = analistasList.map(a=>`<option value="${a.nome}">`).join('');
+      if(slackConfig.url) document.getElementById('slack-url').value = slackConfig.url;
+      document.getElementById('slack-prefix').value = slackConfig.prefix||'';
+      document.getElementById('slack-mention').value= slackConfig.mention||'';
+      document.getElementById('slack-footer').value = slackConfig.footer||'';
+      dataReady = Object.keys(dataMap).length > 0;
+      chkReady  = Object.keys(chkMap).length  > 0;
+      checkApplyBtn();
+      updateAll();
+      renderAnalystChannels();
+      renderAnalistasPage();
+      alert('Backup restaurado com sucesso! ' + records.length + ' cedentes e ' + analistasList.length + ' analistas carregados.');
+    } catch(err){
+      alert('Erro ao importar backup: ' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function exportCSV(){
+  if(!records.length){ alert('Nenhum dado para exportar.'); return; }
+  const head=['Grupo','Tipo','Cedente','Analista','Rating',
+    '1ª Operação','2ª Operação','3ª Operação','4ª Operação',
+    'Classificação 1','Classificação 2','Classificação 3','Classificação 4','Status'];
+  const rows=records.map(r=>{
+    const d=r.datas||[]; const cl=r.classificacoes||[];
+    const statusMap={'ok':'Em dia','warn':'Atenção','alert':'Atrasado'};
+    return [
+      r.grupo||'', r.tipo||'', r.nome||'', r.analista||'', r.rating||'',
+      fmtDate(d[0]), fmtDate(d[1]), fmtDate(d[2]), fmtDate(d[3]),
+      cl[0]||'', cl[1]||'', cl[2]||'', cl[3]||'',
+      statusMap[getOverallStatus(r)]||''
+    ];
+  });
+  // Build xlsx workbook with proper columns
+  const ws=XLSX.utils.aoa_to_sheet([head,...rows]);
+  // Set column widths
+  ws['!cols']=[
+    {wch:18},{wch:10},{wch:24},{wch:16},{wch:12},
+    {wch:14},{wch:14},{wch:14},{wch:14},
+    {wch:28},{wch:28},{wch:28},{wch:28},{wch:12}
+  ];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Cedentes');
+  XLSX.writeFile(wb,'cedentes_bma.xlsx');
+}
+
+function clearAll(){
+  if(!confirm('Limpar todos os registros cadastrados? Esta ação não pode ser desfeita.')) return;
+  records=[]; LS.save('bma-records',records); updateAll(); renderList();
+}
+
+function printReport(){
+  window.print();
+}
+
+// ====== UTILS ======
+function showMsg(el,type,text){
+  el.className='alert '+type+' show'; el.textContent=text;
+  setTimeout(()=>{ el.className='alert'; },5000);
+}
+
+// ====== DIAGNÓSTICO ======
+function showDiag(){
+  const panel=document.getElementById('diag-panel');
+  if(panel.style.display!=='none'){panel.style.display='none';return;}
+  if(!records.length){
+    panel.innerHTML='<p style="color:var(--muted);font-size:12px;padding:10px 0">Nenhum cedente cadastrado.</p>';
+    panel.style.display='';return;
+  }
+  const rows=records.map(r=>{
+    const dk=norm(r.nome);
+    const dm=dataMap[dk]||null;
+    const cm=chkMap[dk]||null;
+    const mapDatas=dm&&Array.isArray(dm.datas)?dm.datas:[];
+    const datasStr=mapDatas.length?mapDatas.map(d=>fmtDate(d)).join(' → '):'(nenhuma)';
+    const data1=r.data1||(r.datas&&r.datas[0])||'';
+    const result=buildDatas(data1,mapDatas);
+    const resultStr=result.length?result.map(d=>fmtDate(d)).join(' | '):'(vazio)';
+    const chkOps=cm?cm.ops.length:0;
+    const statusColor=!dm?'var(--red)':mapDatas.length===0?'var(--yellow)':'var(--green)';
+    const statusMsg=!dm?'❌ Não encontrado':mapDatas.length===0?'⚠ Sem datas':'✅ Ok';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 9px;font-weight:500;white-space:nowrap">${r.nome}</td>
+      <td style="padding:6px 9px;font-family:var(--mono);font-size:11px;color:var(--accent)">${data1?fmtDate(data1):'—'}</td>
+      <td style="padding:6px 9px;font-size:11px;color:${statusColor}">${statusMsg}</td>
+      <td style="padding:6px 9px;font-family:var(--mono);font-size:11px;color:var(--muted)">${datasStr}</td>
+      <td style="padding:6px 9px;font-family:var(--mono);font-size:11px;color:var(--text)">${resultStr}</td>
+      <td style="padding:6px 9px;font-size:11px;color:var(--muted)">${chkOps} obs.</td>
+    </tr>`;
+  }).join('');
+  panel.innerHTML=`
+    <div style="font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+      Diagnóstico — o que o app encontrou no arquivo para cada cedente
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:700px">
+        <thead><tr style="background:var(--bg3)">
+          <th style="padding:6px 9px;text-align:left;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">Cedente</th>
+          <th style="padding:6px 9px;text-align:left;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">1ª Data cadastrada</th>
+          <th style="padding:6px 9px;text-align:left;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">No arquivo?</th>
+          <th style="padding:6px 9px;text-align:left;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">Datas encontradas no arquivo</th>
+          <th style="padding:6px 9px;text-align:left;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">Resultado final (1ª→4ª)</th>
+          <th style="padding:6px 9px;text-align:left;color:var(--muted);font-size:10px;border-bottom:1px solid var(--border)">Checagem</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('diag-panel').style.display='none'" style="margin-top:10px">Fechar</button>`;
+  panel.style.display='';
+}
+
+// ====== INIT ======
+function bootApp(){
+  // If Firebase module already fired, go immediately; else wait
+  if(window._fbReady){ initStorage(); }
+  else { document.addEventListener('firebase-ready', ()=>initStorage(), {once:true}); }
+  // Fallback: if Firebase takes >4s, boot with localStorage
+  setTimeout(()=>{ if(!window._fbReady){ console.warn('Firebase timeout, using localStorage'); initStorage(); } }, 4000);
+}
+bootApp();
+</script>
+</body>
+</html>
